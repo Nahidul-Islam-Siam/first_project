@@ -125,6 +125,53 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 ),
                 child: Row(
                   children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Use Device Location',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Off = Baitul Mukarram, Dhaka',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: useDeviceLocationNotifier,
+                      builder: (context, enabled, _) {
+                        return Switch(
+                          value: enabled,
+                          onChanged: (v) => useDeviceLocationNotifier.value = v,
+                          activeThumbColor: const Color(0xFF14A3B8),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE1E8EC)),
+                ),
+                child: Row(
+                  children: [
                     const Text(
                       'Sehri Alert',
                       style: TextStyle(fontWeight: FontWeight.w600),

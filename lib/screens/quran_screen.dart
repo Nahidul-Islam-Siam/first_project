@@ -6,6 +6,7 @@ import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import 'surah_detail_screen.dart';
 import '../services/quran_api_service.dart';
+import '../services/quran_content_cache_service.dart';
 import '../services/quran_last_read_service.dart';
 import '../widgets/bottom_nav.dart';
 
@@ -20,11 +21,13 @@ class _QuranScreenState extends State<QuranScreen> {
   static const _quickLinkIds = [18, 36, 55, 67];
 
   final QuranApiService _api = QuranApiService();
+  final QuranContentCacheService _contentCache = QuranContentCacheService();
   final QuranLastReadService _lastReadService = QuranLastReadService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
   final Set<int> _downloadedSurahNos = {};
+  final Set<int> _downloadingSurahNos = {};
 
   bool _isLoading = true;
   String? _error;
@@ -33,6 +36,10 @@ class _QuranScreenState extends State<QuranScreen> {
   bool _showOnlyDownloaded = false;
   bool _usingCachedContent = false;
   int? _lastReadSurahNo;
+  bool _isBulkCachingText = false;
+  int _bulkCacheCompleted = 0;
+  int _bulkCacheTotal = 0;
+  int _bulkCacheFailed = 0;
 
   List<QuranChapter> _chapters = [];
 
@@ -78,6 +85,11 @@ class _QuranScreenState extends State<QuranScreen> {
         _usingCachedContent = fromCache;
         _isLoading = false;
       });
+      final downloaded = await _refreshDownloadedFlags();
+      if (!mounted) return;
+      if (!fromCache) {
+        unawaited(_autoCacheAllTextIfNeeded(chapters, downloaded));
+      }
       if (fromCache) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -93,6 +105,101 @@ class _QuranScreenState extends State<QuranScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<Set<int>> _refreshDownloadedFlags() async {
+    final chapters = List<QuranChapter>.from(_chapters);
+    final downloaded = <int>{};
+
+    for (final chapter in chapters) {
+      final detail = await _contentCache.readSurahDetail(
+        chapter.surahNo,
+        lang: 'bn',
+      );
+      if (detail != null) {
+        downloaded.add(chapter.surahNo);
+      }
+    }
+
+    if (!mounted) return downloaded;
+    setState(() {
+      _downloadedSurahNos
+        ..clear()
+        ..addAll(downloaded);
+    });
+    return downloaded;
+  }
+
+  Future<void> _autoCacheAllTextIfNeeded(
+    List<QuranChapter> chapters,
+    Set<int> downloaded,
+  ) async {
+    if (_isBulkCachingText) return;
+
+    final missing = chapters
+        .where((chapter) => !downloaded.contains(chapter.surahNo))
+        .toList(growable: false);
+    if (missing.isEmpty) return;
+
+    if (!mounted) return;
+    setState(() {
+      _isBulkCachingText = true;
+      _bulkCacheTotal = chapters.length;
+      _bulkCacheCompleted = downloaded.length;
+      _bulkCacheFailed = 0;
+    });
+
+    var failed = 0;
+    for (final chapter in missing) {
+      try {
+        await _api.fetchSurahDetail(chapter.surahNo, lang: 'bn');
+        downloaded.add(chapter.surahNo);
+      } catch (_) {
+        failed += 1;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _bulkCacheCompleted = downloaded.length;
+        _bulkCacheFailed = failed;
+        _downloadedSurahNos
+          ..clear()
+          ..addAll(downloaded);
+      });
+    }
+
+    if (!mounted) return;
+    setState(() => _isBulkCachingText = false);
+
+    final successCount = downloaded.length;
+    if (failed == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Quran text cached for offline reading ($successCount/${chapters.length}).',
+          ),
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Offline text cached $successCount/${chapters.length}. Retry later for remaining $failed.',
+        ),
+      ),
+    );
+  }
+
+  bool get _showBulkCacheProgress =>
+      _isBulkCachingText ||
+      (_bulkCacheTotal > 0 && _bulkCacheCompleted < _bulkCacheTotal);
+
+  double get _bulkCacheProgressValue {
+    if (_bulkCacheTotal <= 0) return 0;
+    final value = _bulkCacheCompleted / _bulkCacheTotal;
+    return value.clamp(0.0, 1.0).toDouble();
   }
 
   List<QuranChapter> get _filteredChapters {
@@ -133,14 +240,39 @@ class _QuranScreenState extends State<QuranScreen> {
 
     final downloaded = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) => SurahDetailScreen(
-          chapter: chapter,
-          autoStartAudio: autoStartAudio,
-        ),
+        builder: (_) =>
+            SurahDetailScreen(chapter: chapter, autoStartAudio: autoStartAudio),
       ),
     );
     if (!mounted || downloaded != true) return;
     setState(() => _downloadedSurahNos.add(chapter.surahNo));
+  }
+
+  Future<void> _downloadSurahForOffline(QuranChapter chapter) async {
+    if (_downloadingSurahNos.contains(chapter.surahNo)) return;
+    setState(() => _downloadingSurahNos.add(chapter.surahNo));
+
+    try {
+      await _api.fetchSurahDetail(chapter.surahNo, lang: 'bn');
+
+      if (!mounted) return;
+      setState(() {
+        _downloadingSurahNos.remove(chapter.surahNo);
+        _downloadedSurahNos.add(chapter.surahNo);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Surah text saved for offline reading')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _downloadingSurahNos.remove(chapter.surahNo));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to save Surah for offline reading'),
+        ),
+      );
+    }
   }
 
   void _showVideoInfo() {
@@ -317,7 +449,7 @@ class _QuranScreenState extends State<QuranScreen> {
                             Icons.info_outline_rounded,
                             color: Colors.white,
                             size: 19,
-                          ),
+                          ), 
                         ),
                       ),
                     ],
@@ -518,6 +650,53 @@ class _QuranScreenState extends State<QuranScreen> {
               ),
             ],
           ),
+          if (_showBulkCacheProgress) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: BrandColors.tintBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: BrandColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Preparing offline reading: $_bulkCacheCompleted/$_bulkCacheTotal',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: BrandColors.primaryDark,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 6,
+                      value: _bulkCacheProgressValue,
+                      backgroundColor: Colors.white,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        BrandColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _bulkCacheFailed > 0
+                        ? 'Audio is separate. Retry later to finish remaining text.'
+                        : 'Audio is separate and can be downloaded per Surah.',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: BrandColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -561,19 +740,21 @@ class _QuranScreenState extends State<QuranScreen> {
                         final downloaded = _downloadedSurahNos.contains(
                           chapter.surahNo,
                         );
+                        final downloading = _downloadingSurahNos.contains(
+                          chapter.surahNo,
+                        );
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: _QuranSurahTile(
                             chapter: chapter,
                             downloaded: downloaded,
+                            downloading: downloading,
                             revelationLabel: _revelationLabel(
                               chapter.revelationPlace,
                             ),
                             onTap: () => _showSurahDetail(chapter),
-                            onAudio: () => _showSurahDetail(
-                              chapter,
-                              autoStartAudio: true,
-                            ),
+                            onDownload: () => _downloadSurahForOffline(chapter),
+                            onOpenAudio: () => _showSurahDetail(chapter),
                           ),
                         );
                       },
@@ -702,16 +883,20 @@ class _QuranSurahTile extends StatelessWidget {
   const _QuranSurahTile({
     required this.chapter,
     required this.downloaded,
+    required this.downloading,
     required this.revelationLabel,
     required this.onTap,
-    required this.onAudio,
+    required this.onDownload,
+    required this.onOpenAudio,
   });
 
   final QuranChapter chapter;
   final bool downloaded;
+  final bool downloading;
   final String revelationLabel;
   final VoidCallback onTap;
-  final VoidCallback onAudio;
+  final VoidCallback onDownload;
+  final VoidCallback onOpenAudio;
 
   @override
   Widget build(BuildContext context) {
@@ -785,18 +970,30 @@ class _QuranSurahTile extends StatelessWidget {
                 ),
               ),
               IconButton.filledTonal(
-                onPressed: onAudio,
+                onPressed: downloading
+                    ? null
+                    : downloaded
+                    ? onOpenAudio
+                    : onDownload,
                 style: IconButton.styleFrom(
-                  backgroundColor: BrandColors.tintBackground,
+                  backgroundColor: downloaded
+                      ? const Color(0xFFEAF7EE)
+                      : BrandColors.tintBackground,
                   foregroundColor: downloaded
-                      ? BrandColors.primary
+                      ? const Color(0xFF16A34A)
                       : BrandColors.primaryDark,
                 ),
-                icon: Icon(
-                  downloaded
-                      ? Icons.download_done_rounded
-                      : Icons.headphones_rounded,
-                ),
+                icon: downloading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        downloaded
+                            ? Icons.download_done_rounded
+                            : Icons.download_rounded,
+                      ),
               ),
             ],
           ),

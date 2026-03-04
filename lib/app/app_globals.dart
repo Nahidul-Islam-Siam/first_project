@@ -11,6 +11,7 @@ enum AppLanguage { english, bangla }
 
 final ValueNotifier<AppLanguage> appLanguageNotifier =
     ValueNotifier<AppLanguage>(AppLanguage.english);
+final ValueNotifier<bool> useDeviceLocationNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> sehriAlertEnabledNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> iftarAlertEnabledNotifier = ValueNotifier<bool>(true);
 

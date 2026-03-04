@@ -8,6 +8,7 @@ import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import '../services/quran_api_service.dart';
 import '../services/quran_offline_download_service.dart';
+import '../services/quran_timing_service.dart';
 
 class SurahDetailScreen extends StatefulWidget {
   const SurahDetailScreen({
@@ -26,6 +27,7 @@ class SurahDetailScreen extends StatefulWidget {
 class _SurahDetailScreenState extends State<SurahDetailScreen> {
   final QuranApiService _api = QuranApiService();
   final QuranOfflineDownloadService _offline = QuranOfflineDownloadService();
+  final QuranTimingService _timing = QuranTimingService();
   final AudioPlayer _player = AudioPlayer();
 
   StreamSubscription<PlayerState>? _playerStateSub;
@@ -39,14 +41,20 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   bool _isDownloadingAudio = false;
   bool _didDownloadAudio = false;
   bool _usingCachedContent = false;
+  bool _showBottomPlayer = false;
 
   int? _selectedReciterId;
-  int? _preparedReciterId;
-  final Set<int> _cachedReciterIds = {};
+  String? _preparedAudioUrl;
+  final Set<String> _cachedAudioUrls = {};
+  int? _timingRecitationId;
+  String? _timingAudioUrl;
+  List<QuranTimingSegment> _timingSegments = const [];
 
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  final Map<int, GlobalKey> _ayahItemKeys = {};
+  int _lastAutoScrolledAyahIndex = -1;
 
   @override
   void initState() {
@@ -95,10 +103,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         lang: 'bn',
       );
       final fromCache = _api.lastReadFromCache;
-      final cachedIds = <int>{};
+      final cachedUrls = <String>{};
       for (final reciter in detail.audioByReciter) {
         final isCached = await _offline.hasAudio(reciter.url);
-        if (isCached) cachedIds.add(reciter.id);
+        if (isCached) cachedUrls.add(reciter.url);
       }
 
       if (!mounted) return;
@@ -107,12 +115,25 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         _selectedReciterId = detail.audioByReciter.isNotEmpty
             ? detail.audioByReciter.first.id
             : null;
-        _cachedReciterIds
+        _cachedAudioUrls
           ..clear()
-          ..addAll(cachedIds);
+          ..addAll(cachedUrls);
         _usingCachedContent = fromCache;
+        _timingRecitationId = null;
+        _timingAudioUrl = null;
+        _timingSegments = const [];
+        _preparedAudioUrl = null;
+        _showBottomPlayer = widget.autoStartAudio;
         _isLoading = false;
       });
+
+      await _resolveTimingForSelectedReciter();
+
+      if (widget.autoStartAudio) {
+        await _togglePlayPause();
+      }
+
+      if (!mounted) return;
       if (fromCache) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -126,6 +147,47 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         _error =
             'সূরার বিস্তারিত লোড করা যায়নি। একবার ইন্টারনেট অন করে এই সূরা খুলুন, পরে অফলাইনে পাবেন।';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _resolveTimingForSelectedReciter() async {
+    final reciter = _selectedReciter;
+    if (reciter == null) return;
+
+    final recitationId = _timing.recitationIdForReciterName(reciter.reciter);
+    if (recitationId == null) {
+      if (!mounted) return;
+      setState(() {
+        _timingRecitationId = null;
+        _timingAudioUrl = null;
+        _timingSegments = const [];
+        _preparedAudioUrl = null;
+      });
+      return;
+    }
+
+    try {
+      final timing = await _timing.fetchChapterTiming(
+        surahNo: widget.chapter.surahNo,
+        recitationId: recitationId,
+      );
+      final cached = await _offline.hasAudio(timing.audioUrl);
+      if (!mounted) return;
+      setState(() {
+        _timingRecitationId = timing.recitationId;
+        _timingAudioUrl = timing.audioUrl;
+        _timingSegments = timing.segments;
+        _preparedAudioUrl = null;
+        if (cached) _cachedAudioUrls.add(timing.audioUrl);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _timingRecitationId = null;
+        _timingAudioUrl = null;
+        _timingSegments = const [];
+        _preparedAudioUrl = null;
       });
     }
   }
@@ -151,13 +213,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     return output;
   }
 
-  String _revelationLabel(String place) {
-    final lower = place.toLowerCase();
-    if (lower.contains('mecca')) return 'মক্কী';
-    if (lower.contains('medina')) return 'মাদানী';
-    return place;
-  }
-
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -170,6 +225,25 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   int _activeAyahIndex(int totalAyah) {
     if (totalAyah <= 0) return -1;
+    final hasPlaybackStarted = _isPlaying || _position > Duration.zero;
+    if (!hasPlaybackStarted) return -1;
+
+    if (_timingSegments.isNotEmpty) {
+      final currentMs = _position.inMilliseconds;
+      for (final seg in _timingSegments) {
+        if (currentMs >= seg.fromMs && currentMs <= seg.toMs) {
+          return seg.ayahIndex.clamp(0, totalAyah - 1);
+        }
+      }
+
+      if (currentMs > _timingSegments.last.toMs) {
+        return _timingSegments.last.ayahIndex.clamp(0, totalAyah - 1);
+      }
+      if (currentMs < _timingSegments.first.fromMs) {
+        return _timingSegments.first.ayahIndex.clamp(0, totalAyah - 1);
+      }
+    }
+
     final totalMs = _duration.inMilliseconds;
     if (totalMs <= 0) return -1;
     final currentMs = _position.inMilliseconds.clamp(0, totalMs);
@@ -178,26 +252,157 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     return index.clamp(0, totalAyah - 1);
   }
 
+  QuranTimingSegment? _timingSegmentForAyah(int ayahIndex) {
+    for (final seg in _timingSegments) {
+      if (seg.ayahIndex == ayahIndex) return seg;
+    }
+    return null;
+  }
+
+  int _activeWordIndexForAyah(int ayahIndex, String arabicText) {
+    final hasPlaybackStarted = _isPlaying || _position > Duration.zero;
+    if (!hasPlaybackStarted) return -1;
+    if (_timingSegments.isEmpty || arabicText.trim().isEmpty) return -1;
+    final timing = _timingSegmentForAyah(ayahIndex);
+    if (timing == null || timing.wordSegments.isEmpty) return -1;
+
+    final currentMs = _position.inMilliseconds;
+    for (final word in timing.wordSegments) {
+      if (currentMs >= word.fromMs && currentMs <= word.toMs) {
+        return word.wordIndex;
+      }
+    }
+
+    if (currentMs > timing.wordSegments.last.toMs) {
+      return timing.wordSegments.last.wordIndex;
+    }
+    if (currentMs < timing.wordSegments.first.fromMs) {
+      return timing.wordSegments.first.wordIndex;
+    }
+    return -1;
+  }
+
+  void _maybeAutoScrollToAyah(int ayahIndex) {
+    if (!_isPlaying || ayahIndex < 0) return;
+    if (_lastAutoScrolledAyahIndex == ayahIndex) return;
+    _lastAutoScrolledAyahIndex = ayahIndex;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = _ayahItemKeys[ayahIndex];
+      final context = key?.currentContext;
+      if (context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 340),
+        curve: Curves.easeOutCubic,
+        alignment: 0.18,
+      );
+    });
+  }
+
+  Key _keyForAyahItem(int ayahIndex) {
+    return _ayahItemKeys.putIfAbsent(ayahIndex, GlobalKey.new);
+  }
+
+  Widget _buildArabicAyahText({
+    required String arabic,
+    required int highlightedWordIndex,
+  }) {
+    const baseStyle = TextStyle(
+      fontSize: 24,
+      height: 1.7,
+      fontWeight: FontWeight.w600,
+      color: BrandColors.textPrimary,
+    );
+
+    final cleaned = arabic.trim();
+    if (cleaned.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    if (highlightedWordIndex < 0) {
+      return Text(
+        cleaned,
+        textDirection: TextDirection.rtl,
+        textAlign: TextAlign.right,
+        style: baseStyle,
+      );
+    }
+
+    final words = cleaned.split(RegExp(r'\s+'));
+    if (words.isEmpty) {
+      return Text(
+        cleaned,
+        textDirection: TextDirection.rtl,
+        textAlign: TextAlign.right,
+        style: baseStyle,
+      );
+    }
+
+    final maxWordIndex = words.length - 1;
+    final safeWordIndex = highlightedWordIndex.clamp(0, maxWordIndex);
+
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < words.length; i++) {
+      final word = words[i];
+      final isHighlighted = i == safeWordIndex;
+      spans.add(
+        TextSpan(
+          text: i == words.length - 1 ? word : '$word ',
+          style: baseStyle.copyWith(
+            color: isHighlighted
+                ? BrandColors.primaryDark
+                : BrandColors.textPrimary,
+            fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w600,
+            backgroundColor: isHighlighted
+                ? const Color(0x553AD1FF)
+                : Colors.transparent,
+          ),
+        ),
+      );
+    }
+
+    return RichText(
+      textDirection: TextDirection.rtl,
+      textAlign: TextAlign.right,
+      text: TextSpan(children: spans),
+    );
+  }
+
   Future<void> _onReciterChanged(int? reciterId) async {
     if (reciterId == null || reciterId == _selectedReciterId) return;
     await _player.stop();
     if (!mounted) return;
     setState(() {
       _selectedReciterId = reciterId;
-      _preparedReciterId = null;
+      _preparedAudioUrl = null;
+      _timingRecitationId = null;
+      _timingAudioUrl = null;
+      _timingSegments = const [];
       _position = Duration.zero;
       _duration = Duration.zero;
+      _lastAutoScrolledAyahIndex = -1;
     });
+    await _resolveTimingForSelectedReciter();
+  }
+
+  String _playbackUrlFor(QuranReciterAudio reciter) {
+    if (_timingAudioUrl != null && _timingRecitationId != null) {
+      return _timingAudioUrl!;
+    }
+    return reciter.url;
   }
 
   Future<void> _prepareAudio(QuranReciterAudio reciter) async {
-    final cachedFile = await _offline.getCachedAudio(reciter.url);
+    final playbackUrl = _playbackUrlFor(reciter);
+    final cachedFile = await _offline.getCachedAudio(playbackUrl);
     if (cachedFile != null) {
       await _player.setFilePath(cachedFile.path);
-      _cachedReciterIds.add(reciter.id);
+      _cachedAudioUrls.add(playbackUrl);
       return;
     }
-    await _player.setUrl(reciter.url);
+    await _player.setUrl(playbackUrl);
   }
 
   Future<void> _togglePlayPause() async {
@@ -214,7 +419,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       return;
     }
 
-    if (_preparedReciterId == reciter.id && _player.audioSource != null) {
+    final playbackUrl = _playbackUrlFor(reciter);
+    if (_preparedAudioUrl == playbackUrl && _player.audioSource != null) {
       await _player.play();
       return;
     }
@@ -225,7 +431,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       await _player.play();
       if (!mounted) return;
       setState(() {
-        _preparedReciterId = reciter.id;
+        _preparedAudioUrl = playbackUrl;
         _isPreparingAudio = false;
       });
     } catch (_) {
@@ -245,19 +451,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     setState(() {
       _position = Duration.zero;
       _duration = Duration.zero;
+      _lastAutoScrolledAyahIndex = -1;
     });
   }
 
   Future<void> _downloadSelectedAudio() async {
     final reciter = _selectedReciter;
     if (reciter == null || _isDownloadingAudio) return;
+    final playbackUrl = _playbackUrlFor(reciter);
 
     setState(() => _isDownloadingAudio = true);
     try {
-      final path = await _offline.downloadAudio(reciter.url);
+      final path = await _offline.downloadAudio(playbackUrl);
       if (!mounted) return;
       setState(() {
-        _cachedReciterIds.add(reciter.id);
+        _cachedAudioUrls.add(playbackUrl);
         _isDownloadingAudio = false;
         _didDownloadAudio = true;
       });
@@ -277,224 +485,240 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   Widget _buildAudioCard(QuranSurahDetail detail) {
     final reciter = _selectedReciter;
     final hasReciters = detail.audioByReciter.isNotEmpty;
-    final isCached = reciter != null && _cachedReciterIds.contains(reciter.id);
+    final playbackUrl = reciter == null ? null : _playbackUrlFor(reciter);
+    final isCached =
+        playbackUrl != null && _cachedAudioUrls.contains(playbackUrl);
+    final hasExactTiming =
+        _timingSegments.isNotEmpty &&
+        _timingAudioUrl != null &&
+        _timingRecitationId != null;
 
     final durationMs = _duration.inMilliseconds;
     final maxMs = durationMs > 0 ? durationMs : 1;
     final currentMs = _position.inMilliseconds.clamp(0, maxMs);
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [BrandColors.tintBackground, Color(0xFFF2FBFD)],
-        ),
-        border: Border.all(color: BrandColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            detail.surahNameArabicLong,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: BrandColors.textPrimary,
-            ),
-            textDirection: TextDirection.rtl,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_toBanglaDigits(detail.surahNo.toString())}. ${detail.surahName} • ${_revelationLabel(detail.revelationPlace)} • ${_toBanglaDigits(detail.totalAyah.toString())} আয়াত',
-            style: const TextStyle(
-              color: BrandColors.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (_usingCachedContent) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: BrandColors.tintBackgroundStrong,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Text(
-                'Offline saved content',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: BrandColors.primaryDark,
-                ),
-              ),
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: BrandColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 16,
+              offset: Offset(0, 6),
             ),
           ],
-          const SizedBox(height: 10),
-          if (hasReciters)
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: 'রিসাইটার',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${detail.surahName} • ${_toBanglaDigits(detail.surahNo.toString())}',
+                    style: const TextStyle(
+                      color: BrandColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                IconButton(
+                  tooltip: 'Hide player',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() => _showBottomPlayer = false),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: BrandColors.textMuted,
+                  ),
                 ),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  isExpanded: true,
-                  value: _selectedReciter?.id,
-                  items: detail.audioByReciter
-                      .map(
-                        (reciter) => DropdownMenuItem<int>(
-                          value: reciter.id,
-                          child: Text(
-                            reciter.reciter,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: _onReciterChanged,
-                ),
-              ),
-            )
-          else
-            const Text(
-              'এই সূরার জন্য অডিও সোর্স পাওয়া যায়নি।',
-              style: TextStyle(
-                color: Color(0xFF7A4444),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              ],
             ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            ),
-            child: Slider(
-              value: currentMs.toDouble(),
-              min: 0,
-              max: maxMs.toDouble(),
-              onChanged: durationMs > 0
-                  ? (value) =>
-                        _player.seek(Duration(milliseconds: value.round()))
-                  : null,
-            ),
-          ),
-          Row(
-            children: [
-              Text(
-                _formatDuration(_position),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: BrandColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                _formatDuration(_duration),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: BrandColors.textSecondary,
+            if (_usingCachedContent) ...[
+              const SizedBox(height: 2),
+              const Text(
+                'Offline saved content',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: BrandColors.textMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Audio progress অনুযায়ী আয়াত হাইলাইট হবে',
-            style: TextStyle(
-              fontSize: 11,
-              color: BrandColors.textMuted,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 6),
+            if (hasReciters)
+              InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'রিসাইটার',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    value: _selectedReciter?.id,
+                    items: detail.audioByReciter
+                        .map(
+                          (reciter) => DropdownMenuItem<int>(
+                            value: reciter.id,
+                            child: Text(
+                              reciter.reciter,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _onReciterChanged,
+                  ),
+                ),
+              )
+            else
+              const Text(
+                'এই সূরার জন্য অডিও সোর্স পাওয়া যায়নি।',
+                style: TextStyle(
+                  color: Color(0xFF7A4444),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            const SizedBox(height: 8),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              ),
+              child: Slider(
+                value: currentMs.toDouble(),
+                min: 0,
+                max: maxMs.toDouble(),
+                onChanged: durationMs > 0
+                    ? (value) =>
+                          _player.seek(Duration(milliseconds: value.round()))
+                    : null,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: hasReciters && !_isPreparingAudio
-                      ? _togglePlayPause
+            Row(
+              children: [
+                Text(
+                  _formatDuration(_position),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: BrandColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _formatDuration(_duration),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: BrandColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              hasExactTiming
+                  ? 'Exact ayah timing sync enabled'
+                  : 'Approximate sync (timing not available for this reciter)',
+              style: const TextStyle(
+                fontSize: 11,
+                color: BrandColors.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: hasReciters && !_isPreparingAudio
+                        ? _togglePlayPause
+                        : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: BrandColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: _isPreparingAudio
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                          ),
+                    label: Text(_isPlaying ? 'Pause' : 'Play'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _isPlaying || _position > Duration.zero
+                      ? _stopAudio
+                      : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: BrandColors.primaryDark,
+                    side: const BorderSide(color: BrandColors.border),
+                  ),
+                  icon: const Icon(Icons.stop_rounded),
+                  label: const Text('Stop'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  onPressed: hasReciters && !_isDownloadingAudio
+                      ? _downloadSelectedAudio
                       : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: BrandColors.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: BrandColors.tintBackgroundStrong,
+                    foregroundColor: BrandColors.primaryDark,
                   ),
-                  icon: _isPreparingAudio
+                  icon: _isDownloadingAudio
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Icon(
-                          _isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
+                          isCached
+                              ? Icons.download_done_rounded
+                              : Icons.download_rounded,
                         ),
-                  label: Text(_isPlaying ? 'Pause' : 'Play'),
+                  label: Text(isCached ? 'Saved' : 'Offline'),
                 ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: _isPlaying || _position > Duration.zero
-                    ? _stopAudio
-                    : null,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: BrandColors.primaryDark,
-                  side: const BorderSide(color: BrandColors.border),
-                ),
-                icon: const Icon(Icons.stop_rounded),
-                label: const Text('Stop'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonalIcon(
-                onPressed: hasReciters && !_isDownloadingAudio
-                    ? _downloadSelectedAudio
-                    : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: BrandColors.tintBackgroundStrong,
-                  foregroundColor: BrandColors.primaryDark,
-                ),
-                icon: _isDownloadingAudio
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        isCached
-                            ? Icons.download_done_rounded
-                            : Icons.download_rounded,
-                      ),
-                label: Text(isCached ? 'Saved' : 'Offline'),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildAyahCard({
+    Key? itemKey,
     required int index,
     required String arabic,
     required String bengali,
     required bool highlighted,
+    required int highlightedWordIndex,
   }) {
     return AnimatedContainer(
+      key: itemKey,
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
@@ -545,16 +769,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                arabic,
-                textDirection: TextDirection.rtl,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 24,
-                  height: 1.7,
-                  fontWeight: FontWeight.w600,
-                  color: BrandColors.textPrimary,
-                ),
+              child: _buildArabicAyahText(
+                arabic: arabic,
+                highlightedWordIndex: highlighted ? highlightedWordIndex : -1,
               ),
             ),
           ],
@@ -592,7 +809,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             icon: const Icon(Icons.arrow_back_rounded),
           ),
           title: Text(widget.chapter.surahName),
+          actions: [
+            IconButton(
+              tooltip: 'Audio player',
+              onPressed: _detail == null
+                  ? null
+                  : () => setState(() => _showBottomPlayer = true),
+              icon: const Icon(Icons.headphones_rounded),
+            ),
+          ],
         ),
+        bottomNavigationBar: _detail != null && _showBottomPlayer
+            ? _buildAudioCard(_detail!)
+            : null,
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
@@ -621,10 +850,38 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     detail.bengaliAyahs.length,
                   );
                   final activeAyahIndex = _activeAyahIndex(totalAyah);
+                  _maybeAutoScrollToAyah(activeAyahIndex);
 
                   return Column(
                     children: [
-                      _buildAudioCard(detail),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _showBottomPlayer
+                                    ? 'Player is active at bottom'
+                                    : 'Audio player hidden for reading',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: BrandColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () =>
+                                  setState(() => _showBottomPlayer = true),
+                              icon: const Icon(
+                                Icons.headphones_rounded,
+                                size: 16,
+                              ),
+                              label: const Text('Play Audio'),
+                            ),
+                          ],
+                        ),
+                      ),
                       Expanded(
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
@@ -638,12 +895,18 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                             final bengali = index < detail.bengaliAyahs.length
                                 ? detail.bengaliAyahs[index]
                                 : '';
+                            final wordHighlightIndex = _activeWordIndexForAyah(
+                              index,
+                              arabic,
+                            );
 
                             return _buildAyahCard(
+                              itemKey: _keyForAyahItem(index),
                               index: index,
                               arabic: arabic,
                               bengali: bengali,
                               highlighted: index == activeAyahIndex,
+                              highlightedWordIndex: wordHighlightIndex,
                             );
                           },
                         ),

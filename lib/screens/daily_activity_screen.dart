@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:adhan_dart/adhan_dart.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,11 @@ import 'package:ponjika/ponjika.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../app/app_globals.dart';
+import '../app/route_names.dart';
+import '../models/quran_models.dart';
+import '../services/quran_api_service.dart';
+import '../services/quran_last_read_service.dart';
+import 'surah_detail_screen.dart';
 import '../widgets/bottom_nav.dart';
 
 class DailyActivityScreen extends StatefulWidget {
@@ -21,14 +27,20 @@ class DailyActivityScreen extends StatefulWidget {
 }
 
 class _DailyActivityScreenState extends State<DailyActivityScreen> {
-  static const _dhakaLat = 23.8103;
-  static const _dhakaLng = 90.4125;
+  static const _baitulMukarramLat = 23.7286;
+  static const _baitulMukarramLng = 90.4106;
+  static const _baitulMukarramLabel = 'Baitul Mukarram, Dhaka';
   static const _headerHeight = 330.0;
+  static const _apiMethod = 1; // University of Islamic Sciences, Karachi
+  static const _apiSchool = 1; // Hanafi
 
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
   double? _latitude;
   double? _longitude;
+  bool _isFetchingPrayerSchedule = false;
+  _DailyPrayerSchedule? _todaySchedule;
+  _DailyPrayerSchedule? _tomorrowSchedule;
   DateTime? _lastPrayerCalcDate;
   DateTime? _todayFajr;
   DateTime? _todayIftar;
@@ -61,6 +73,19 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   ];
   late final PageController _prayerPageController;
   String? _selectedPrayer;
+  final QuranLastReadService _lastReadService = QuranLastReadService();
+  final QuranApiService _quranApiService = QuranApiService();
+  final Dio _prayerApi = Dio(
+    BaseOptions(
+      baseUrl: 'https://api.aladhan.com',
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 15),
+      responseType: ResponseType.json,
+    ),
+  );
+  int? _lastReadSurahNo;
+  QuranChapter? _lastReadChapter;
 
   final List<_ActivityItem> _activities = [
     _ActivityItem(title: 'Alms', done: 4, total: 10),
@@ -75,9 +100,11 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       initialPage: _prayerOrder.indexOf(_activePrayer),
     );
     appLanguageNotifier.addListener(_onLanguageChanged);
+    useDeviceLocationNotifier.addListener(_onUseDeviceLocationChanged);
     sehriAlertEnabledNotifier.addListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.addListener(_onIftarAlertToggleChanged);
     _loadPrayerData();
+    _loadLastReadCard();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _now = DateTime.now());
@@ -95,6 +122,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   @override
   void dispose() {
     appLanguageNotifier.removeListener(_onLanguageChanged);
+    useDeviceLocationNotifier.removeListener(_onUseDeviceLocationChanged);
     sehriAlertEnabledNotifier.removeListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.removeListener(_onIftarAlertToggleChanged);
     _clockTimer.cancel();
@@ -103,6 +131,12 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   }
 
   void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _onUseDeviceLocationChanged() async {
+    await _loadPrayerData();
     if (!mounted) return;
     setState(() {});
   }
@@ -308,6 +342,44 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       ? '\u0985\u09ac\u09b6\u09bf\u09b7\u09cd\u099f \u09b8\u09ae\u09df'
       : 'Remaining';
 
+  String _localizedLastReadLabel() => _isBangla
+      ? '\u09b8\u09b0\u09cd\u09ac\u09b6\u09c7\u09b7 \u09a4\u09bf\u09b2\u09be\u0993\u09df\u09be\u09a4'
+      : 'Last Read';
+
+  String _localizedContinueLabel() => _isBangla
+      ? '\u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8'
+      : 'Continue';
+
+  String _lastReadPrimaryLine() {
+    final chapter = _lastReadChapter;
+    if (chapter != null) {
+      final surahNo = _isBangla
+          ? _toBanglaDigits(chapter.surahNo.toString())
+          : chapter.surahNo.toString();
+      return _isBangla
+          ? '${chapter.surahName} • \u09b8\u09c2\u09b0\u09be $surahNo'
+          : '${chapter.surahName} • Surah $surahNo';
+    }
+
+    if (_lastReadSurahNo != null) {
+      final surahNo = _isBangla
+          ? _toBanglaDigits(_lastReadSurahNo.toString())
+          : _lastReadSurahNo.toString();
+      return _isBangla ? '\u09b8\u09c2\u09b0\u09be $surahNo' : 'Surah $surahNo';
+    }
+
+    return _isBangla
+        ? '\u09b8\u09be\u09ae\u09cd\u09aa\u09cd\u09b0\u09a4\u09bf\u0995 \u09a4\u09bf\u09b2\u09be\u0993\u09df\u09be\u09a4 \u09a8\u09c7\u0987'
+        : 'No recent recitation';
+  }
+
+  String? _lastReadSecondaryLine() {
+    final chapter = _lastReadChapter;
+    if (chapter == null) return null;
+    if (chapter.surahNameTranslation.trim().isEmpty) return null;
+    return chapter.surahNameTranslation;
+  }
+
   String _localizedTimeOrPlaceholder(DateTime? time) {
     if (time == null) return '--:--';
     return _localizedPrayerTime(_formatPrayerTime(time));
@@ -322,6 +394,54 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     final ss = (safe.inSeconds % 60).toString().padLeft(2, '0');
     final value = '$hh:$mm:$ss';
     return _isBangla ? _toBanglaDigits(value) : value;
+  }
+
+  Future<void> _loadLastReadCard() async {
+    final savedSurahNo = await _lastReadService.readLastReadSurahNo();
+    if (!mounted) return;
+
+    if (savedSurahNo == null) {
+      setState(() {
+        _lastReadSurahNo = null;
+        _lastReadChapter = null;
+      });
+      return;
+    }
+
+    QuranChapter? chapter;
+    try {
+      final chapters = await _quranApiService.fetchChapters();
+      for (final item in chapters) {
+        if (item.surahNo == savedSurahNo) {
+          chapter = item;
+          break;
+        }
+      }
+    } catch (_) {
+      // Keep number fallback when chapter metadata is unavailable.
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _lastReadSurahNo = savedSurahNo;
+      _lastReadChapter = chapter;
+    });
+  }
+
+  Future<void> _openLastRead() async {
+    final chapter = _lastReadChapter;
+    if (chapter != null) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => SurahDetailScreen(chapter: chapter),
+        ),
+      );
+      return;
+    }
+
+    await Navigator.of(context).pushNamed(RouteNames.quran);
+    if (!mounted) return;
+    await _loadLastReadCard();
   }
 
   Future<void> _scheduleMealNotification({
@@ -531,15 +651,17 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   }
 
   Future<void> _loadPrayerData() async {
+    if (!useDeviceLocationNotifier.value) {
+      _setBaitulMukarramLocation();
+      await _refreshPrayerScheduleFromSource(forceRefresh: true);
+      return;
+    }
+
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _latitude = _dhakaLat;
-        _longitude = _dhakaLng;
-        if (mounted) {
-          setState(() => _locationLabel = 'Dhaka, Bangladesh');
-        }
-        _recalculatePrayerTimesForToday();
+        _setBaitulMukarramLocation();
+        await _refreshPrayerScheduleFromSource(forceRefresh: true);
         return;
       }
 
@@ -549,28 +671,27 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        _latitude = _dhakaLat;
-        _longitude = _dhakaLng;
-        if (mounted) {
-          setState(() => _locationLabel = 'Dhaka, Bangladesh');
-        }
-        _recalculatePrayerTimesForToday();
+        _setBaitulMukarramLocation();
+        await _refreshPrayerScheduleFromSource(forceRefresh: true);
         return;
       }
 
       final position = await Geolocator.getCurrentPosition();
       _latitude = position.latitude;
       _longitude = position.longitude;
-
       await _resolveLocationLabel(position.latitude, position.longitude);
-      _recalculatePrayerTimesForToday();
     } catch (_) {
-      _latitude = _dhakaLat;
-      _longitude = _dhakaLng;
-      if (!mounted) return;
-      setState(() => _locationLabel = 'Dhaka, Bangladesh');
-      _recalculatePrayerTimesForToday();
+      _setBaitulMukarramLocation();
     }
+
+    await _refreshPrayerScheduleFromSource(forceRefresh: true);
+  }
+
+  void _setBaitulMukarramLocation() {
+    _latitude = _baitulMukarramLat;
+    _longitude = _baitulMukarramLng;
+    if (!mounted) return;
+    setState(() => _locationLabel = _baitulMukarramLabel);
   }
 
   Future<void> _resolveLocationLabel(double lat, double lng) async {
@@ -582,7 +703,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
           place.locality ??
           place.subAdministrativeArea ??
           place.administrativeArea ??
-          'Your location';
+          'Current location';
       final area = place.administrativeArea ?? place.country ?? '';
       final label = area.isNotEmpty ? '$city, $area' : city;
       setState(() => _locationLabel = label);
@@ -592,6 +713,117 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     }
   }
 
+  Future<void> _refreshPrayerScheduleFromSource({
+    required bool forceRefresh,
+  }) async {
+    if (_isFetchingPrayerSchedule) return;
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final alreadyLoaded =
+        _todaySchedule != null &&
+        _tomorrowSchedule != null &&
+        _isSameDate(_todaySchedule!.date, today) &&
+        _isSameDate(_tomorrowSchedule!.date, tomorrow);
+    if (!forceRefresh && alreadyLoaded) return;
+
+    _isFetchingPrayerSchedule = true;
+    try {
+      final results = await Future.wait<_DailyPrayerSchedule>([
+        _fetchPrayerScheduleFromApi(today),
+        _fetchPrayerScheduleFromApi(tomorrow),
+      ]);
+      _todaySchedule = results[0];
+      _tomorrowSchedule = results[1];
+    } catch (_) {
+      // Fallback for offline mode or API failure.
+      _todaySchedule = _buildFallbackSchedule(today);
+      _tomorrowSchedule = _buildFallbackSchedule(tomorrow);
+      if (mounted && forceRefresh) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Using offline calculated prayer times'),
+          ),
+        );
+      }
+    } finally {
+      _isFetchingPrayerSchedule = false;
+    }
+
+    _recalculatePrayerTimesForToday();
+  }
+
+  Future<_DailyPrayerSchedule> _fetchPrayerScheduleFromApi(
+    DateTime date,
+  ) async {
+    final latitude = _latitude ?? _baitulMukarramLat;
+    final longitude = _longitude ?? _baitulMukarramLng;
+    final response = await _prayerApi.get(
+      '/v1/timings/${_formatApiDate(date)}',
+      queryParameters: {
+        'latitude': latitude,
+        'longitude': longitude,
+        'method': _apiMethod,
+        'school': _apiSchool,
+      },
+    );
+
+    final root = response.data;
+    if (root is! Map) {
+      throw const FormatException('Invalid prayer response root');
+    }
+    final data = root['data'];
+    if (data is! Map) {
+      throw const FormatException('Invalid prayer response data');
+    }
+    final timings = data['timings'];
+    if (timings is! Map) {
+      throw const FormatException('Invalid prayer response timings');
+    }
+
+    String valueFor(String key) => (timings[key] ?? '').toString();
+    return _DailyPrayerSchedule(
+      date: DateTime(date.year, date.month, date.day),
+      imsak: _parseApiTime(date, valueFor('Imsak')),
+      fajr: _parseApiTime(date, valueFor('Fajr')),
+      dzuhr: _parseApiTime(date, valueFor('Dhuhr')),
+      ashr: _parseApiTime(date, valueFor('Asr')),
+      maghrib: _parseApiTime(date, valueFor('Maghrib')),
+      isha: _parseApiTime(date, valueFor('Isha')),
+    );
+  }
+
+  String _formatApiDate(DateTime date) {
+    final dd = date.day.toString().padLeft(2, '0');
+    final mm = date.month.toString().padLeft(2, '0');
+    return '$dd-$mm-${date.year}';
+  }
+
+  DateTime _parseApiTime(DateTime date, String raw) {
+    final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(raw);
+    if (match == null) {
+      throw FormatException('Invalid prayer time: $raw');
+    }
+    final hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    return DateTime(date.year, date.month, date.day, hour, minute);
+  }
+
+  bool _isSameDate(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  _DailyPrayerSchedule _buildFallbackSchedule(DateTime date) {
+    final prayers = _prayerTimesForDate(date);
+    return _DailyPrayerSchedule(
+      date: DateTime(date.year, date.month, date.day),
+      imsak: prayers.fajr.toLocal(),
+      fajr: prayers.fajr.toLocal(),
+      dzuhr: prayers.dhuhr.toLocal(),
+      ashr: prayers.asr.toLocal(),
+      maghrib: prayers.maghrib.toLocal(),
+      isha: prayers.isha.toLocal(),
+    );
+  }
+
   CalculationParameters _buildCalculationParams() {
     final params = CalculationMethodParameters.karachi();
     params.madhab = Madhab.hanafi;
@@ -599,50 +831,54 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   }
 
   PrayerTimes _prayerTimesForDate(DateTime date) {
+    final latitude = _latitude ?? _baitulMukarramLat;
+    final longitude = _longitude ?? _baitulMukarramLng;
     return PrayerTimes(
       date: date,
-      coordinates: Coordinates(_latitude!, _longitude!),
+      coordinates: Coordinates(latitude, longitude),
       calculationParameters: _buildCalculationParams(),
     );
   }
 
   _RamadanMealData _buildRamadanMealData({
     required DateTime now,
-    required DateTime fajr,
+    required DateTime sehri,
     required DateTime maghrib,
-    required DateTime tomorrowFajr,
+    required DateTime tomorrowSehri,
     required DateTime tomorrowMaghrib,
   }) {
-    final nextSehri = now.isBefore(fajr) ? fajr : tomorrowFajr;
+    final nextSehri = now.isBefore(sehri) ? sehri : tomorrowSehri;
     final nextIftar = now.isBefore(maghrib) ? maghrib : tomorrowMaghrib;
     return _RamadanMealData(nextSehri: nextSehri, nextIftar: nextIftar);
   }
 
   void _recalculatePrayerTimesForToday() {
-    if (_latitude == null || _longitude == null) return;
+    final today = DateTime(_now.year, _now.month, _now.day);
     final isNewDay =
         _lastPrayerCalcDate == null ||
-        _lastPrayerCalcDate!.day != _now.day ||
-        _lastPrayerCalcDate!.month != _now.month ||
-        _lastPrayerCalcDate!.year != _now.year;
+        !_isSameDate(_lastPrayerCalcDate!, today);
 
-    final prayers = _prayerTimesForDate(_now);
-    final tomorrowPrayers = _prayerTimesForDate(
-      _now.add(const Duration(days: 1)),
-    );
+    final scheduleToday = _todaySchedule;
+    final scheduleTomorrow = _tomorrowSchedule;
+    if (scheduleToday == null ||
+        scheduleTomorrow == null ||
+        !_isSameDate(scheduleToday.date, today)) {
+      unawaited(_refreshPrayerScheduleFromSource(forceRefresh: true));
+      return;
+    }
 
-    final fajr = prayers.fajr.toLocal();
-    final dzuhr = prayers.dhuhr.toLocal();
-    final ashr = prayers.asr.toLocal();
-    final maghrib = prayers.maghrib.toLocal();
-    final isha = prayers.isha.toLocal();
-    final ishaBefore = prayers.ishaBefore.toLocal();
+    final fajr = scheduleToday.fajr;
+    final dzuhr = scheduleToday.dzuhr;
+    final ashr = scheduleToday.ashr;
+    final maghrib = scheduleToday.maghrib;
+    final isha = scheduleToday.isha;
+    final ishaBefore = scheduleToday.isha.subtract(const Duration(days: 1));
     final mealData = _buildRamadanMealData(
       now: _now,
-      fajr: fajr,
+      sehri: scheduleToday.imsak,
       maghrib: maghrib,
-      tomorrowFajr: tomorrowPrayers.fajr.toLocal(),
-      tomorrowMaghrib: tomorrowPrayers.maghrib.toLocal(),
+      tomorrowSehri: scheduleTomorrow.imsak,
+      tomorrowMaghrib: scheduleTomorrow.maghrib,
     );
     final activeData = _buildActivePrayerData(
       now: _now,
@@ -655,8 +891,8 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     );
 
     setState(() {
-      _lastPrayerCalcDate = DateTime.now();
-      _todayFajr = fajr;
+      _lastPrayerCalcDate = today;
+      _todayFajr = scheduleToday.imsak;
       _todayIftar = maghrib;
       if (isNewDay) {
         _lastShownSehriModalAt = null;
@@ -686,24 +922,30 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
   void _updateCountdown() {
     if (_prayerTimes['Fajr'] == '--:--') return;
-    if (_latitude == null || _longitude == null) return;
-    final prayers = _prayerTimesForDate(_now);
-    final tomorrowPrayers = _prayerTimesForDate(
-      _now.add(const Duration(days: 1)),
-    );
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final scheduleToday = _todaySchedule;
+    final scheduleTomorrow = _tomorrowSchedule;
+    if (scheduleToday == null ||
+        scheduleTomorrow == null ||
+        !_isSameDate(scheduleToday.date, today)) {
+      if (!_isFetchingPrayerSchedule) {
+        unawaited(_refreshPrayerScheduleFromSource(forceRefresh: true));
+      }
+      return;
+    }
 
-    final fajr = prayers.fajr.toLocal();
-    final dzuhr = prayers.dhuhr.toLocal();
-    final ashr = prayers.asr.toLocal();
-    final maghrib = prayers.maghrib.toLocal();
-    final isha = prayers.isha.toLocal();
-    final ishaBefore = prayers.ishaBefore.toLocal();
+    final fajr = scheduleToday.fajr;
+    final dzuhr = scheduleToday.dzuhr;
+    final ashr = scheduleToday.ashr;
+    final maghrib = scheduleToday.maghrib;
+    final isha = scheduleToday.isha;
+    final ishaBefore = scheduleToday.isha.subtract(const Duration(days: 1));
     final mealData = _buildRamadanMealData(
       now: _now,
-      fajr: fajr,
+      sehri: scheduleToday.imsak,
       maghrib: maghrib,
-      tomorrowFajr: tomorrowPrayers.fajr.toLocal(),
-      tomorrowMaghrib: tomorrowPrayers.maghrib.toLocal(),
+      tomorrowSehri: scheduleTomorrow.imsak,
+      tomorrowMaghrib: scheduleTomorrow.maghrib,
     );
     final activeData = _buildActivePrayerData(
       now: _now,
@@ -940,6 +1182,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         ? _formattedActiveRemaining()
         : _localizedPrayerTime(_prayerTimes[_displayPrayer] ?? '--:--');
     final gaugeProgress = _isShowingActivePrayer ? _activeProgress : 0.0;
+    final lastReadSecondary = _lastReadSecondaryLine();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -1164,59 +1407,67 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Last Read',
-                                style: TextStyle(
+                                _localizedLastReadLabel(),
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF6F8DA1),
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.menu_book_rounded,
                                     size: 16,
                                     color: Color(0xFF1D98A9),
                                   ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Al Baqarah : 120',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF1F252D),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Juz 1',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFF6F8DA1),
-                                      fontWeight: FontWeight.w700,
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      _lastReadPrimaryLine(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF1F252D),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
+                              if (lastReadSecondary != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  lastReadSecondary,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF6F8DA1),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
                         FilledButton(
-                          onPressed: () {},
+                          onPressed: _openLastRead,
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF1D98A9),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(1000),
                             ),
                           ),
-                          child: const Text(
-                            'Continue',
-                            style: TextStyle(
+                          child: Text(
+                            _localizedContinueLabel(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1438,6 +1689,26 @@ class _ActivityItem {
   final String title;
   int done;
   final int total;
+}
+
+class _DailyPrayerSchedule {
+  const _DailyPrayerSchedule({
+    required this.date,
+    required this.imsak,
+    required this.fajr,
+    required this.dzuhr,
+    required this.ashr,
+    required this.maghrib,
+    required this.isha,
+  });
+
+  final DateTime date;
+  final DateTime imsak;
+  final DateTime fajr;
+  final DateTime dzuhr;
+  final DateTime ashr;
+  final DateTime maghrib;
+  final DateTime isha;
 }
 
 class _RamadanMealData {
