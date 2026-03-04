@@ -6,7 +6,11 @@ Widget bottomNav(BuildContext context, int active) {
   final items = <({String label, IconData icon, String? routeName})>[
     (label: 'Home', icon: Icons.home_filled, routeName: RouteNames.activity),
     (label: 'Discover', icon: Icons.explore_outlined, routeName: null),
-    (label: 'Quran', icon: Icons.menu_book_outlined, routeName: null),
+    (
+      label: 'Quran',
+      icon: Icons.menu_book_outlined,
+      routeName: RouteNames.quran,
+    ),
     (
       label: 'Prayer',
       icon: Icons.calendar_month_outlined,

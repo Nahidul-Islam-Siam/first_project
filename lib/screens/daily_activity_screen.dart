@@ -714,14 +714,16 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       isha: isha,
       ishaBefore: ishaBefore,
     );
+    final mealsChanged =
+        mealData.nextSehri != _nextSehriAt ||
+        mealData.nextIftar != _nextIftarAt;
 
     if (mounted &&
         (activeData.name != _activePrayer ||
             activeData.countdownLabel != _countdownLabel ||
             activeData.progress != _activeProgress ||
             activeData.remaining != _activeRemaining ||
-            mealData.nextSehri != _nextSehriAt ||
-            mealData.nextIftar != _nextIftarAt)) {
+            mealsChanged)) {
       setState(() {
         _activePrayer = activeData.name;
         _countdownLabel = activeData.countdownLabel;
@@ -730,7 +732,9 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         _nextSehriAt = mealData.nextSehri;
         _nextIftarAt = mealData.nextIftar;
       });
-      _refreshMealAlertScheduling();
+      if (mealsChanged) {
+        _refreshMealAlertScheduling();
+      }
       if (_selectedPrayer == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _syncPrayerPageToActive(animate: true);

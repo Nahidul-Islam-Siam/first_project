@@ -13,6 +13,7 @@ class UiPreviewHome extends StatelessWidget {
       (title: 'Profile Preferences', routeName: RouteNames.preferences),
       (title: 'Edit Profile', routeName: RouteNames.editProfile),
       (title: 'Daily Activity', routeName: RouteNames.activity),
+      (title: 'Quran Screen', routeName: RouteNames.quran),
     ];
 
     return Scaffold(
