@@ -296,6 +296,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.8"
+  hijri:
+    dependency: "direct main"
+    description:
+      name: hijri
+      sha256: "203eb7341e32789af6429877e88411b1526ef44c5d157ce4d3b930dd32c37ef1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   hooks:
     dependency: transitive
     description:
@@ -496,6 +504,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  ponjika:
+    dependency: "direct main"
+    description:
+      name: ponjika
+      sha256: "4c7fb92e2ae6599f6fd8f48c76c97d365a89a2cb41c379e6b08b95a3be904596"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   pub_semver:
     dependency: transitive
     description:

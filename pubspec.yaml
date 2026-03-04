@@ -40,6 +40,8 @@ dependencies:
   adhan_dart: ^1.2.0
   flutter_local_notifications: ^19.4.2
   timezone: ^0.10.1
+  hijri: ^3.0.0
+  ponjika: ^1.1.0
 
 dev_dependencies:
   flutter_test:

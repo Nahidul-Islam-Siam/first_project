@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hijri/hijri_calendar.dart';
+import 'package:ponjika/ponjika.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../app/app_globals.dart';
@@ -115,6 +117,61 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     return _isBangla ? _toBanglaDigits(value) : value;
   }
 
+  String get _formattedHijriDate {
+    final hijri = HijriCalendar.fromDate(_now);
+    final day = hijri.hDay.toString();
+    final year = hijri.hYear.toString();
+    final month = hijri.longMonthName;
+
+    if (_isBangla) {
+      return '${_toBanglaDigits(day)} ${_localizedHijriMonthName(month)} ${_toBanglaDigits(year)} \u09b9\u09bf\u099c\u09b0\u09bf';
+    }
+    return '$day $month $year H';
+  }
+
+  String get _formattedBanglaDate {
+    return Ponjika.format(date: _now, format: 'DD MM YY');
+  }
+
+  String get _formattedBritishDate {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final day = _now.day.toString().padLeft(2, '0');
+    final value = '$day ${months[_now.month - 1]} ${_now.year}';
+    return _isBangla ? _toBanglaDigits(value) : value;
+  }
+
+  List<String> get _headerDateVariants {
+    final banglaLabel = _isBangla ? '\u09ac\u09be\u0982\u09b2\u09be' : 'Bangla';
+    final hijriLabel = _isBangla ? '\u0986\u09b0\u09ac\u09bf' : 'Hijri';
+    final britishLabel = _isBangla
+        ? '\u0987\u0982\u09b0\u09c7\u099c\u09bf'
+        : 'English (UK)';
+    return [
+      '$banglaLabel: $_formattedBanglaDate',
+      '$hijriLabel: $_formattedHijriDate',
+      '$britishLabel: $_formattedBritishDate',
+    ];
+  }
+
+  String get _activeHeaderDate {
+    final variants = _headerDateVariants;
+    final index = (_now.second ~/ 2) % variants.length;
+    return variants[index];
+  }
+
   bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
 
   String _toBanglaDigits(String input) {
@@ -148,6 +205,29 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       'Isha': '\u0987\u09b6\u09be',
     };
     return map[name] ?? name;
+  }
+
+  String _localizedHijriMonthName(String name) {
+    if (!_isBangla) return name;
+    const monthMap = {
+      'Muharram': '\u09ae\u09b9\u09b0\u09b0\u09ae',
+      'Safar': '\u09b8\u09ab\u09b0',
+      'Rabi\' al-awwal':
+          '\u09b0\u09ac\u09bf\u0989\u09b2 \u0986\u0989\u09df\u09be\u09b2',
+      'Rabi\' al-thani':
+          '\u09b0\u09ac\u09bf\u0989\u09b8 \u09b8\u09be\u09a8\u09bf',
+      'Jumada al-awwal':
+          '\u099c\u09ae\u09be\u09a6\u09bf\u0989\u09b2 \u0986\u0989\u09df\u09be\u09b2',
+      'Jumada al-thani':
+          '\u099c\u09ae\u09be\u09a6\u09bf\u0989\u09b8 \u09b8\u09be\u09a8\u09bf',
+      'Rajab': '\u09b0\u099c\u09ac',
+      'Sha\'ban': '\u09b6\u09be\u09ac\u09be\u09a8',
+      'Ramadan': '\u09b0\u09ae\u099c\u09be\u09a8',
+      'Shawwal': '\u09b6\u0993\u09df\u09be\u09b2',
+      'Dhu al-Qi\'dah': '\u099c\u09bf\u09b2\u0995\u09a6',
+      'Dhu al-Hijjah': '\u099c\u09bf\u09b2\u09b9\u099c',
+    };
+    return monthMap[name] ?? name;
   }
 
   String _localizedCountdownLabel() {
@@ -568,13 +648,29 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                                 height: 1,
                               ),
                             ),
-                            Spacer(),
-                            const Text(
-                              '10 Ramadhan 1446 H',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                            const Spacer(),
+                            SizedBox(
+                              width: 170,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 250),
+                                transitionBuilder: (child, animation) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  );
+                                },
+                                child: Text(
+                                  _activeHeaderDate,
+                                  key: ValueKey(_activeHeaderDate),
+                                  textAlign: TextAlign.right,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
