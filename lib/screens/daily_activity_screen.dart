@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
@@ -33,12 +35,15 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   static const _headerHeight = 330.0;
   static const _apiMethod = 1; // University of Islamic Sciences, Karachi
   static const _apiSchool = 1; // Hanafi
+  static const _locationPrimerSeenCacheKey = 'location_primer_seen_v1';
 
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
   double? _latitude;
   double? _longitude;
   bool _isFetchingPrayerSchedule = false;
+  bool _ignoreNextLocationToggleChange = false;
+  bool _isShowingLocationPrimer = false;
   _DailyPrayerSchedule? _todaySchedule;
   _DailyPrayerSchedule? _tomorrowSchedule;
   DateTime? _lastPrayerCalcDate;
@@ -75,6 +80,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   String? _selectedPrayer;
   final QuranLastReadService _lastReadService = QuranLastReadService();
   final QuranApiService _quranApiService = QuranApiService();
+  final BaseCacheManager _cacheManager = DefaultCacheManager();
   final Dio _prayerApi = Dio(
     BaseOptions(
       baseUrl: 'https://api.aladhan.com',
@@ -101,13 +107,15 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     );
     appLanguageNotifier.addListener(_onLanguageChanged);
     useDeviceLocationNotifier.addListener(_onUseDeviceLocationChanged);
+    prayerAlertsEnabledNotifier.addListener(_onPrayerAlertToggleChanged);
     sehriAlertEnabledNotifier.addListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.addListener(_onIftarAlertToggleChanged);
+    alertToneNotifier.addListener(_onAlertToneChanged);
     _loadPrayerData();
     _loadLastReadCard();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _now = DateTime.now());
+      _safeSetState(() => _now = DateTime.now());
       _updateCountdown();
       _maybeShowMealAlertsModal();
       if (_lastPrayerCalcDate == null ||
@@ -123,22 +131,114 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   void dispose() {
     appLanguageNotifier.removeListener(_onLanguageChanged);
     useDeviceLocationNotifier.removeListener(_onUseDeviceLocationChanged);
+    prayerAlertsEnabledNotifier.removeListener(_onPrayerAlertToggleChanged);
     sehriAlertEnabledNotifier.removeListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.removeListener(_onIftarAlertToggleChanged);
+    alertToneNotifier.removeListener(_onAlertToneChanged);
     _clockTimer.cancel();
     _prayerPageController.dispose();
     super.dispose();
   }
 
-  void _onLanguageChanged() {
+  void _safeSetState(VoidCallback fn) {
     if (!mounted) return;
-    setState(() {});
+    setState(fn);
+  }
+
+  void _onLanguageChanged() {
+    _safeSetState(() {});
   }
 
   Future<void> _onUseDeviceLocationChanged() async {
+    if (_ignoreNextLocationToggleChange) {
+      _ignoreNextLocationToggleChange = false;
+      return;
+    }
     await _loadPrayerData();
-    if (!mounted) return;
-    setState(() {});
+    _safeSetState(() {});
+  }
+
+  void _setUseDeviceLocationSilently(bool value) {
+    if (useDeviceLocationNotifier.value == value) return;
+    _ignoreNextLocationToggleChange = true;
+    useDeviceLocationNotifier.value = value;
+  }
+
+  String _locationPrimerTitle() => _isBangla
+      ? '\u0985\u09a7\u09bf\u0995 \u09a8\u09bf\u09b0\u09cd\u09ad\u09c1\u09b2 \u09b8\u09ae\u09df\u09c7\u09b0 \u099c\u09a8\u09cd\u09af \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u0987'
+      : 'Enable location for accurate prayer times';
+
+  String _locationPrimerBody() => _isBangla
+      ? '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09b2\u09c7 \u0986\u09aa\u09a8\u09be\u09b0 \u098f\u09b0\u09bf\u09df\u09be \u09ad\u09bf\u09a4\u09cd\u09a4\u09bf\u0995 \u09a8\u09be\u09ae\u09be\u099c, \u09b8\u09c7\u09b9\u09b0\u09bf \u0993 \u0987\u09ab\u09a4\u09be\u09b0\u09c7\u09b0 \u09b8\u09ae\u09df \u09a6\u09c7\u0996\u09be\u09a8\u09cb \u09b9\u09ac\u09c7\u0964'
+      : 'Turn on location to get prayer, Sehri, and Iftar times for your current area.';
+
+  String _locationPrimerSkipLabel() => _isBangla
+      ? '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099b\u09be\u09dc\u09be \u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8'
+      : 'Continue without location';
+
+  String _locationPrimerEnableLabel() => _isBangla
+      ? '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8'
+      : 'Enable location';
+
+  Future<bool> _isLocationPrimerSeen() async {
+    final cached = await _cacheManager.getFileFromCache(
+      _locationPrimerSeenCacheKey,
+    );
+    if (cached == null || !await cached.file.exists()) return false;
+
+    try {
+      final text = await cached.file.readAsString();
+      final json = jsonDecode(text);
+      return json is Map && json['seen'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _markLocationPrimerSeen() async {
+    final payload = jsonEncode({'seen': true});
+    await _cacheManager.putFile(
+      _locationPrimerSeenCacheKey,
+      Uint8List.fromList(utf8.encode(payload)),
+      key: _locationPrimerSeenCacheKey,
+      fileExtension: 'json',
+    );
+  }
+
+  Future<bool> _showLocationPrimerIfNeeded() async {
+    final alreadySeen = await _isLocationPrimerSeen();
+    if (alreadySeen) return true;
+    if (!mounted || _isShowingLocationPrimer) return false;
+
+    _isShowingLocationPrimer = true;
+    final action = await showDialog<_LocationPrimerAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(_locationPrimerTitle()),
+          content: Text(_locationPrimerBody()),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_LocationPrimerAction.skip),
+              child: Text(_locationPrimerSkipLabel()),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_LocationPrimerAction.enable),
+              child: Text(_locationPrimerEnableLabel()),
+            ),
+          ],
+        );
+      },
+    );
+    _isShowingLocationPrimer = false;
+    await _markLocationPrimerSeen();
+
+    if (action == _LocationPrimerAction.enable) return true;
+    _setUseDeviceLocationSilently(false);
+    return false;
   }
 
   Future<void> _onSehriAlertToggleChanged() async {
@@ -149,7 +249,12 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     } else {
       await _cancelSehriNotification();
     }
-    if (mounted) setState(() {});
+    _safeSetState(() {});
+  }
+
+  Future<void> _onPrayerAlertToggleChanged() async {
+    await _refreshPrayerAlertScheduling();
+    _safeSetState(() {});
   }
 
   Future<void> _onIftarAlertToggleChanged() async {
@@ -160,7 +265,17 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     } else {
       await _cancelIftarNotification();
     }
-    if (mounted) setState(() {});
+    _safeSetState(() {});
+  }
+
+  void _onAlertToneChanged() {
+    unawaited(_refreshAllAlertSchedulesForToneChange());
+    _safeSetState(() {});
+  }
+
+  Future<void> _refreshAllAlertSchedulesForToneChange() async {
+    await _refreshPrayerAlertScheduling();
+    await _refreshMealAlertScheduling();
   }
 
   String get _formattedTime {
@@ -401,7 +516,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     if (!mounted) return;
 
     if (savedSurahNo == null) {
-      setState(() {
+      _safeSetState(() {
         _lastReadSurahNo = null;
         _lastReadChapter = null;
       });
@@ -422,7 +537,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     }
 
     if (!mounted) return;
-    setState(() {
+    _safeSetState(() {
       _lastReadSurahNo = savedSurahNo;
       _lastReadChapter = chapter;
     });
@@ -459,16 +574,22 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     if (scheduled.isBefore(nowTz)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
+    final tone = alertToneNotifier.value;
+    final playSound = alertTonePlaySound(tone);
+    final resolvedChannelId = channelIdForTone(channelId);
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        channelId,
+        resolvedChannelId,
         channelName,
-        channelDescription: channelDescription,
+        channelDescription: '$channelDescription (${alertToneLabel(tone)})',
         importance: Importance.max,
         priority: Priority.high,
+        playSound: playSound,
+        sound: alertToneSound(tone),
+        audioAttributesUsage: alertToneUsage(tone),
       ),
-      iOS: const DarwinNotificationDetails(),
+      iOS: DarwinNotificationDetails(presentSound: playSound),
     );
 
     try {
@@ -511,6 +632,72 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       body: _localizedSehriAlertBody(),
       payload: 'sehri',
     );
+  }
+
+  Future<void> _schedulePrayerNotification({
+    required int id,
+    required String prayerName,
+    required DateTime at,
+  }) async {
+    if (!prayerAlertsEnabledNotifier.value) return;
+    await _scheduleMealNotification(
+      id: id,
+      channelId: 'prayer_alert_channel',
+      channelName: 'Prayer Alerts',
+      channelDescription: 'Alert when prayer time starts',
+      at: at,
+      title: '$prayerName Prayer Alert',
+      body: 'It is time for $prayerName prayer.',
+      payload: 'prayer_${prayerName.toLowerCase()}',
+    );
+  }
+
+  Future<void> _cancelPrayerNotifications() async {
+    await localNotificationsPlugin.cancel(fajrNotificationId);
+    await localNotificationsPlugin.cancel(dzuhrNotificationId);
+    await localNotificationsPlugin.cancel(ashrNotificationId);
+    await localNotificationsPlugin.cancel(maghribNotificationId);
+    await localNotificationsPlugin.cancel(ishaNotificationId);
+  }
+
+  Future<void> _refreshPrayerAlertScheduling() async {
+    try {
+      if (!prayerAlertsEnabledNotifier.value) {
+        await _cancelPrayerNotifications();
+        return;
+      }
+
+      final schedule = _todaySchedule;
+      if (schedule == null) return;
+
+      await _schedulePrayerNotification(
+        id: fajrNotificationId,
+        prayerName: 'Fajr',
+        at: schedule.fajr,
+      );
+      await _schedulePrayerNotification(
+        id: dzuhrNotificationId,
+        prayerName: 'Dzuhr',
+        at: schedule.dzuhr,
+      );
+      await _schedulePrayerNotification(
+        id: ashrNotificationId,
+        prayerName: 'Ashr',
+        at: schedule.ashr,
+      );
+      await _schedulePrayerNotification(
+        id: maghribNotificationId,
+        prayerName: 'Maghrib',
+        at: schedule.maghrib,
+      );
+      await _schedulePrayerNotification(
+        id: ishaNotificationId,
+        prayerName: 'Isha',
+        at: schedule.isha,
+      );
+    } catch (e) {
+      debugPrint('Prayer alert scheduling failed: $e');
+    }
   }
 
   Future<void> _scheduleIftarNotification(DateTime iftarTime) async {
@@ -657,9 +844,17 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       return;
     }
 
+    final allowDeviceLocation = await _showLocationPrimerIfNeeded();
+    if (!allowDeviceLocation) {
+      _setBaitulMukarramLocation();
+      await _refreshPrayerScheduleFromSource(forceRefresh: true);
+      return;
+    }
+
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        _setUseDeviceLocationSilently(false);
         _setBaitulMukarramLocation();
         await _refreshPrayerScheduleFromSource(forceRefresh: true);
         return;
@@ -671,6 +866,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
+        _setUseDeviceLocationSilently(false);
         _setBaitulMukarramLocation();
         await _refreshPrayerScheduleFromSource(forceRefresh: true);
         return;
@@ -681,6 +877,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       _longitude = position.longitude;
       await _resolveLocationLabel(position.latitude, position.longitude);
     } catch (_) {
+      _setUseDeviceLocationSilently(false);
       _setBaitulMukarramLocation();
     }
 
@@ -690,8 +887,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   void _setBaitulMukarramLocation() {
     _latitude = _baitulMukarramLat;
     _longitude = _baitulMukarramLng;
-    if (!mounted) return;
-    setState(() => _locationLabel = _baitulMukarramLabel);
+    _safeSetState(() => _locationLabel = _baitulMukarramLabel);
   }
 
   Future<void> _resolveLocationLabel(double lat, double lng) async {
@@ -706,16 +902,16 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
           'Current location';
       final area = place.administrativeArea ?? place.country ?? '';
       final label = area.isNotEmpty ? '$city, $area' : city;
-      setState(() => _locationLabel = label);
+      _safeSetState(() => _locationLabel = label);
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _locationLabel = 'Current location');
+      _safeSetState(() => _locationLabel = 'Current location');
     }
   }
 
   Future<void> _refreshPrayerScheduleFromSource({
     required bool forceRefresh,
   }) async {
+    if (!mounted) return;
     if (_isFetchingPrayerSchedule) return;
     final today = DateTime(_now.year, _now.month, _now.day);
     final tomorrow = today.add(const Duration(days: 1));
@@ -853,6 +1049,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   }
 
   void _recalculatePrayerTimesForToday() {
+    if (!mounted) return;
     final today = DateTime(_now.year, _now.month, _now.day);
     final isNewDay =
         _lastPrayerCalcDate == null ||
@@ -890,7 +1087,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       ishaBefore: ishaBefore,
     );
 
-    setState(() {
+    _safeSetState(() {
       _lastPrayerCalcDate = today;
       _todayFajr = scheduleToday.imsak;
       _todayIftar = maghrib;
@@ -913,8 +1110,10 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       _nextIftarAt = mealData.nextIftar;
     });
     _refreshMealAlertScheduling();
-    if (_selectedPrayer == null) {
+    _refreshPrayerAlertScheduling();
+    if (_selectedPrayer == null && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _syncPrayerPageToActive(animate: false);
       });
     }
@@ -966,7 +1165,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
             activeData.progress != _activeProgress ||
             activeData.remaining != _activeRemaining ||
             mealsChanged)) {
-      setState(() {
+      _safeSetState(() {
         _activePrayer = activeData.name;
         _countdownLabel = activeData.countdownLabel;
         _activeRemaining = activeData.remaining;
@@ -979,6 +1178,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       }
       if (_selectedPrayer == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
           _syncPrayerPageToActive(animate: true);
         });
       }
@@ -1690,6 +1890,8 @@ class _ActivityItem {
   int done;
   final int total;
 }
+
+enum _LocationPrimerAction { enable, skip }
 
 class _DailyPrayerSchedule {
   const _DailyPrayerSchedule({

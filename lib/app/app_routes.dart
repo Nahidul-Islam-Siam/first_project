@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'route_names.dart';
 import '../screens/daily_activity_screen.dart';
 import '../screens/edit_profile_screen.dart';
+import '../screens/about_screen.dart';
 import '../screens/profile_preferences_screen.dart';
+import '../screens/privacy_policy_screen.dart';
 import '../screens/quran_screen.dart';
 import '../screens/ramadan_splash_screen.dart';
 import '../screens/signup_screen.dart';
@@ -26,6 +28,10 @@ class AppRoutes {
         return _page(const DailyActivityScreen(), settings);
       case RouteNames.quran:
         return _page(const QuranScreen(), settings);
+      case RouteNames.privacyPolicy:
+        return _page(const PrivacyPolicyScreen(), settings);
+      case RouteNames.about:
+        return _page(const AboutScreen(), settings);
       default:
         return _page(const UiPreviewHome(), settings);
     }

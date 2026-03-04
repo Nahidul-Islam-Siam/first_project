@@ -6,4 +6,6 @@ class RouteNames {
   static const editProfile = '/edit-profile';
   static const activity = '/activity';
   static const quran = '/quran';
+  static const privacyPolicy = '/privacy-policy';
+  static const about = '/about';
 }
