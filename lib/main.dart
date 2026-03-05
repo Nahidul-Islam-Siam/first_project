@@ -19,14 +19,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Design Preview',
+      title: 'Noorify',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: BrandColors.primary,
         scaffoldBackgroundColor: BrandColors.screenBackground,
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       ),
-      initialRoute: RouteNames.preview,
+      initialRoute: RouteNames.home,
       onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }

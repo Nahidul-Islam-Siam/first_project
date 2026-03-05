@@ -1,11 +1,11 @@
 {
-    "name": "first_project",
-    "short_name": "first_project",
+    "name": "Noorify",
+    "short_name": "Noorify",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F3F8F5",
+    "theme_color": "#0F7A63",
+    "description": "Noorify - your daily Islamic companion.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,5 +1,6 @@
 class RouteNames {
-  static const preview = '/';
+  static const home = '/';
+  static const preview = '/preview';
   static const splash = '/splash';
   static const signUp = '/signup';
   static const preferences = '/preferences';

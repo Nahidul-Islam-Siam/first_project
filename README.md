@@ -1,17 +1,71 @@
-# first_project
+# Noorify
 
-A new Flutter project.
+Noorify is an Islamic companion app built with Flutter. It focuses on daily
+Islamic routines with prayer timing support, Quran reading, Qibla direction,
+and offline-friendly behavior.
+
+## Core Features
+
+- Prayer times with device location support and fallback timing logic.
+- Sehri, Iftar, and prayer alerts using local notifications.
+- Quran browsing and Surah detail views.
+- Offline Quran text cache and offline audio download support.
+- Qibla compass with heading and bearing guidance.
+- Profile/preferences for language, location mode, and alert settings.
+- Privacy policy and app information screens.
+- UI preview screen for quickly opening mock/feature screens.
+
+## Tech Stack
+
+- Flutter + Dart
+- `google_fonts`
+- `geolocator`, `geocoding`, `flutter_compass`
+- `adhan_dart`, `hijri`, `ponjika`
+- `flutter_local_notifications`, `timezone`
+- `dio`, `flutter_cache_manager`, `just_audio`
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### 1. Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- Install Flutter (stable channel) with Dart 3.11+ support.
+- Set up Android Studio or Xcode (depending on your target platform).
+- Verify setup:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter doctor
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 2. Install Dependencies
+
+```bash
+flutter pub get
+```
+
+### 3. Run the App
+
+```bash
+flutter run
+```
+
+### 4. Validate Code Quality
+
+```bash
+flutter analyze
+flutter test
+```
+
+## Useful Project Paths
+
+- `lib/main.dart`: app entry point and theme/bootstrap.
+- `lib/screens/`: UI screens (home, prayer activity, Quran, Qibla, settings).
+- `lib/services/`: API, offline cache, and Quran helper services.
+- `lib/app/`: route names, route generator, shared app-wide settings.
+- `assets/images/`: static image assets.
+
+## Notes
+
+- Display name is currently branded as `Noorify` across Flutter and platform
+  shells.
+- Package and bundle IDs are still scaffold defaults (`com.example.first_project`)
+  and can be renamed later for production release.

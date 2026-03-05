@@ -715,7 +715,7 @@ class _QuranScreenState extends State<QuranScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                  ? Center(
+                  ? Center( 
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
