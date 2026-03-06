@@ -64,6 +64,83 @@ Phase 2:
 Phase 3:
 - 7, 8, 9, 10
 
+## Current Execution Plan (No Backend, One by One)
+
+We are currently in a local-first build phase (no backend yet).  
+Implementation will happen feature-by-feature in this exact order:
+
+1. Onboarding flow
+- Language
+- Location permission
+- Notification permission
+- Prayer calculation preference
+
+2. Prayer tracker (local)
+- Mark prayer done/missed
+- Daily streak
+- Weekly/monthly summary
+
+3. Quran bookmarks and notes (local) [Done]
+- Bookmark ayah
+- Highlight and short personal note
+- Resume from bookmark
+
+4. Hifz mode (local)
+- Repeat ayah N times
+- A-B repeat
+- Optional hide Bangla meaning mode
+
+5. Dua and Dhikr section (local)
+- Morning/evening adhkar
+- Favorite list
+- Tasbeeh counter
+
+6. Offline download manager improvements
+- Download status
+- Retry/delete controls
+- Offline-ready indicator
+
+7. Reminder center
+- Custom reminder times
+- Prayer-related reminders
+- Quiet-hours support
+
+8. Qibla polish
+- Calibration guidance
+- Accuracy indicator
+- Better fallback messaging
+
+9. Profile polish (local)
+- Profile picture placeholder support
+- Better profile edit fields
+- Preferences grouping cleanup
+
+10. Local backup/restore
+- Export local data file
+- Import/restore local data file
+
+### Work Rule
+
+- We pick only one feature at a time.
+- Finish implementation + test + docs update for that feature.
+- Then move to the next feature.
+
+## Progress Status
+
+Completed (out of order by priority request):
+- Full profile editing locally (photo, name, preferences)
+  - Implemented Figma-style profile settings layout
+  - Local photo picking and storage
+  - Local theme/font/preference persistence
+- Quran bookmarks and notes (local)
+  - Ayah bookmark add/update/remove in Surah detail
+  - Local note per bookmarked ayah
+  - Surah-level bookmark list with jump-to-ayah
+  - Quran home quick action for bookmark resume
+
+Next up:
+- Hifz Mode (local)
+
 ## 1) Hifz Mode (Memorization Mode) - Next Major Feature
 
 Why:
@@ -96,7 +173,7 @@ Scope:
 ## 3) Quran Bookmarks and Collections
 
 Scope:
-- Save ayah bookmarks with personal notes.
+- Local ayah bookmark + note is already implemented.
 - Group bookmarks into named collections (e.g., "Morning", "Dua Ayahs").
 - Quick access from home screen.
 

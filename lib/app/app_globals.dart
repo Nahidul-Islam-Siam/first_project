@@ -20,6 +20,30 @@ enum AppLanguage { english, bangla }
 
 enum AppAlertTone { appDefault, alarmLike, adhan, silent }
 
+enum AppFontSize { small, medium, large }
+
+double appFontScale(AppFontSize size) {
+  switch (size) {
+    case AppFontSize.small:
+      return 0.92;
+    case AppFontSize.medium:
+      return 1.0;
+    case AppFontSize.large:
+      return 1.1;
+  }
+}
+
+String appFontSizeLabel(AppFontSize size) {
+  switch (size) {
+    case AppFontSize.small:
+      return 'Small';
+    case AppFontSize.medium:
+      return 'Medium';
+    case AppFontSize.large:
+      return 'Large';
+  }
+}
+
 final ValueNotifier<AppLanguage> appLanguageNotifier =
     ValueNotifier<AppLanguage>(AppLanguage.english);
 final ValueNotifier<bool> useDeviceLocationNotifier = ValueNotifier<bool>(true);
@@ -30,11 +54,35 @@ final ValueNotifier<bool> sehriAlertEnabledNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> iftarAlertEnabledNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<AppAlertTone> alertToneNotifier =
     ValueNotifier<AppAlertTone>(AppAlertTone.appDefault);
+final ValueNotifier<bool> darkThemeEnabledNotifier = ValueNotifier<bool>(false);
+final ValueNotifier<AppFontSize> appFontSizeNotifier =
+    ValueNotifier<AppFontSize>(AppFontSize.medium);
 final ValueNotifier<String> profileNameNotifier = ValueNotifier<String>(
-  'Nuha Mvhed Zunader',
+  'Tuafel Ahmed Zuarder',
 );
-final ValueNotifier<String> profileProgressNotifier = ValueNotifier<String>(
-  'Done namaj 30/30',
+final ValueNotifier<String> profileLocationNotifier = ValueNotifier<String>(
+  'Sylhet, Bangladesh',
+);
+final ValueNotifier<String?> profilePhotoBase64Notifier = ValueNotifier<String?>(
+  null,
+);
+final ValueNotifier<bool> showLatinLettersNotifier = ValueNotifier<bool>(true);
+final ValueNotifier<bool> showTranslationNotifier = ValueNotifier<bool>(true);
+final ValueNotifier<String> translationLanguageNotifier = ValueNotifier<String>(
+  'English',
+);
+final ValueNotifier<bool> showTajweedNotifier = ValueNotifier<bool>(false);
+final ValueNotifier<String> translatorNotifier = ValueNotifier<String>(
+  'Dr. Mustafa Khattab',
+);
+final ValueNotifier<String> reciterNotifier = ValueNotifier<String>(
+  'Mishary Rashid Alafasy',
+);
+final ValueNotifier<String> adzanVoiceNotifier = ValueNotifier<String>(
+  'Hanan Attaki',
+);
+final ValueNotifier<String> imsakVoiceNotifier = ValueNotifier<String>(
+  'Default',
 );
 
 const _alertToneCacheKey = 'alert_tone_preference_v1';
@@ -124,6 +172,24 @@ Future<void> loadAppPreferences() async {
         ? AppLanguage.bangla
         : AppLanguage.english;
 
+    final darkTheme = json['darkTheme'];
+    if (darkTheme is bool) {
+      darkThemeEnabledNotifier.value = darkTheme;
+    }
+
+    final fontSize = (json['fontSize'] ?? '').toString();
+    switch (fontSize) {
+      case 'small':
+        appFontSizeNotifier.value = AppFontSize.small;
+        break;
+      case 'large':
+        appFontSizeNotifier.value = AppFontSize.large;
+        break;
+      default:
+        appFontSizeNotifier.value = AppFontSize.medium;
+        break;
+    }
+
     final useDeviceLocation = json['useDeviceLocation'];
     if (useDeviceLocation is bool) {
       useDeviceLocationNotifier.value = useDeviceLocation;
@@ -149,9 +215,54 @@ Future<void> loadAppPreferences() async {
       profileNameNotifier.value = profileName;
     }
 
-    final profileProgress = (json['profileProgress'] ?? '').toString().trim();
-    if (profileProgress.isNotEmpty) {
-      profileProgressNotifier.value = profileProgress;
+    final profileLocation = (json['profileLocation'] ?? '').toString().trim();
+    if (profileLocation.isNotEmpty) {
+      profileLocationNotifier.value = profileLocation;
+    }
+
+    final profilePhoto = (json['profilePhoto'] ?? '').toString().trim();
+    profilePhotoBase64Notifier.value = profilePhoto.isEmpty ? null : profilePhoto;
+
+    final showLatin = json['showLatinLetters'];
+    if (showLatin is bool) {
+      showLatinLettersNotifier.value = showLatin;
+    }
+
+    final showTranslation = json['showTranslation'];
+    if (showTranslation is bool) {
+      showTranslationNotifier.value = showTranslation;
+    }
+
+    final translationLanguage = (json['translationLanguage'] ?? '')
+        .toString()
+        .trim();
+    if (translationLanguage.isNotEmpty) {
+      translationLanguageNotifier.value = translationLanguage;
+    }
+
+    final showTajweed = json['showTajweed'];
+    if (showTajweed is bool) {
+      showTajweedNotifier.value = showTajweed;
+    }
+
+    final translator = (json['translator'] ?? '').toString().trim();
+    if (translator.isNotEmpty) {
+      translatorNotifier.value = translator;
+    }
+
+    final reciter = (json['reciter'] ?? '').toString().trim();
+    if (reciter.isNotEmpty) {
+      reciterNotifier.value = reciter;
+    }
+
+    final adzanVoice = (json['adzanVoice'] ?? '').toString().trim();
+    if (adzanVoice.isNotEmpty) {
+      adzanVoiceNotifier.value = adzanVoice;
+    }
+
+    final imsakVoice = (json['imsakVoice'] ?? '').toString().trim();
+    if (imsakVoice.isNotEmpty) {
+      imsakVoiceNotifier.value = imsakVoice;
     }
   } catch (_) {
     // Ignore corrupted local preferences and keep defaults.
@@ -161,12 +272,23 @@ Future<void> loadAppPreferences() async {
 Future<void> saveAppPreferences() async {
   final payload = jsonEncode({
     'language': appLanguageNotifier.value.name,
+    'darkTheme': darkThemeEnabledNotifier.value,
+    'fontSize': appFontSizeNotifier.value.name,
     'useDeviceLocation': useDeviceLocationNotifier.value,
     'prayerAlerts': prayerAlertsEnabledNotifier.value,
     'sehriAlert': sehriAlertEnabledNotifier.value,
     'iftarAlert': iftarAlertEnabledNotifier.value,
     'profileName': profileNameNotifier.value,
-    'profileProgress': profileProgressNotifier.value,
+    'profileLocation': profileLocationNotifier.value,
+    'profilePhoto': profilePhotoBase64Notifier.value ?? '',
+    'showLatinLetters': showLatinLettersNotifier.value,
+    'showTranslation': showTranslationNotifier.value,
+    'translationLanguage': translationLanguageNotifier.value,
+    'showTajweed': showTajweedNotifier.value,
+    'translator': translatorNotifier.value,
+    'reciter': reciterNotifier.value,
+    'adzanVoice': adzanVoiceNotifier.value,
+    'imsakVoice': imsakVoiceNotifier.value,
   });
 
   await _settingsCache.putFile(

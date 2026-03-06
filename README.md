@@ -9,6 +9,7 @@ and offline-friendly behavior.
 - Prayer times with device location support and fallback timing logic.
 - Sehri, Iftar, and prayer alerts using local notifications.
 - Quran browsing and Surah detail views.
+- Ayah-level bookmarks and short personal notes (stored locally).
 - Offline Quran text cache and offline audio download support.
 - Qibla compass with heading and bearing guidance.
 - Profile/preferences for language, location mode, and alert settings.
@@ -73,3 +74,4 @@ flutter test
 ## Roadmap
 
 - Future feature roadmap: [docs/FUTURE_UPDATES.md](docs/FUTURE_UPDATES.md)
+- Current execution mode: local-first (no backend), one feature at a time.

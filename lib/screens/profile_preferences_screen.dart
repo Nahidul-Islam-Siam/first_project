@@ -1,9 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/services.dart';
 
 import '../app/app_globals.dart';
 import '../app/route_names.dart';
@@ -18,267 +16,15 @@ class ProfilePreferencesScreen extends StatefulWidget {
 }
 
 class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
-  static const _generalToggleCacheKey = 'profile_general_toggles_v1';
-
-  final values = <String, bool>{
-    'Prayer Time': true,
-    'Quran Verses': true,
-    'Prayer Learning': false,
-    'Daily Tasbeeh': true,
-    'Zikir Times': false,
-    'Daily Newsfeed': true,
-    'Dua Reminder': false,
-    'Hadith Notification': true,
-    'Email Notification': true,
-  };
-  final valueDescriptions = <String, String>{
-    'Prayer Time': 'Prayer schedule updates and reminders.',
-    'Quran Verses': 'Daily ayah and recitation suggestions.',
-    'Prayer Learning': 'Learning tips for salah and practice.',
-    'Daily Tasbeeh': 'Tasbeeh checklist reminder.',
-    'Zikir Times': 'Morning and evening dhikr reminders.',
-    'Daily Newsfeed': 'Islamic article and content feed updates.',
-    'Dua Reminder': 'Recommended duas during the day.',
-    'Hadith Notification': 'Daily hadith notification.',
-    'Email Notification': 'Receive app updates by email.',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _loadGeneralToggles();
-  }
-
-  Future<void> _loadGeneralToggles() async {
-    final cached = await DefaultCacheManager().getFileFromCache(
-      _generalToggleCacheKey,
-    );
-    if (cached == null || !await cached.file.exists()) return;
-
-    try {
-      final json = jsonDecode(await cached.file.readAsString());
-      if (json is! Map) return;
-      if (!mounted) return;
-      setState(() {
-        for (final entry in json.entries) {
-          final key = entry.key.toString();
-          final value = entry.value;
-          if (values.containsKey(key) && value is bool) {
-            values[key] = value;
-          }
-        }
-      });
-    } catch (_) {
-      // Ignore invalid cache and keep defaults.
-    }
-  }
-
-  Future<void> _saveGeneralToggles() async {
-    final payload = jsonEncode(values);
-    await DefaultCacheManager().putFile(
-      _generalToggleCacheKey,
-      Uint8List.fromList(utf8.encode(payload)),
-      key: _generalToggleCacheKey,
-      fileExtension: 'json',
-    );
-  }
-
-  Future<void> _clearCache() async {
-    final shouldClear = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Clear Cache'),
-          content: const Text(
-            'This will remove offline Quran text/audio cache and temporary app data.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Clear'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldClear != true) return;
-    await DefaultCacheManager().emptyCache();
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Cache cleared')));
-  }
-
-  Future<void> _openRoute(String routeName) async {
-    await Navigator.of(context).pushNamed(routeName);
-  }
-
-  Future<void> _persistAppPreferences() async {
-    await saveAppPreferences();
-  }
+  static const _teal = Color(0xFF14A3B8);
+  static const _line = Color(0xFFE5E8EC);
+  static const _mutedText = Color(0xFF8A96A3);
+  static const _titleText = Color(0xFF1F252D);
 
   Future<void> _openEditProfile() async {
     await Navigator.of(context).pushNamed(RouteNames.editProfile);
     if (!mounted) return;
     setState(() {});
-  }
-
-  Future<void> _toggleLanguage(int index) async {
-    appLanguageNotifier.value = index == 0
-        ? AppLanguage.english
-        : AppLanguage.bangla;
-    await _persistAppPreferences();
-  }
-
-  Future<void> _toggleLocationMode(bool enabled) async {
-    useDeviceLocationNotifier.value = enabled;
-    await _persistAppPreferences();
-  }
-
-  Future<void> _toggleSehriAlert(bool enabled) async {
-    if (!enabled) {
-      sehriAlertEnabledNotifier.value = false;
-      await _persistAppPreferences();
-      return;
-    }
-    final granted = await ensureNotificationPermissions();
-    if (!granted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification permission is required')),
-        );
-      }
-      sehriAlertEnabledNotifier.value = false;
-      await _persistAppPreferences();
-      return;
-    }
-    sehriAlertEnabledNotifier.value = true;
-    await _persistAppPreferences();
-  }
-
-  Future<void> _togglePrayerAlerts(bool enabled) async {
-    if (!enabled) {
-      prayerAlertsEnabledNotifier.value = false;
-      await _persistAppPreferences();
-      return;
-    }
-    final granted = await ensureNotificationPermissions();
-    if (!granted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification permission is required')),
-        );
-      }
-      prayerAlertsEnabledNotifier.value = false;
-      await _persistAppPreferences();
-      return;
-    }
-    prayerAlertsEnabledNotifier.value = true;
-    await _persistAppPreferences();
-  }
-
-  Future<void> _toggleIftarAlert(bool enabled) async {
-    if (!enabled) {
-      iftarAlertEnabledNotifier.value = false;
-      await _persistAppPreferences();
-      return;
-    }
-    final granted = await ensureNotificationPermissions();
-    if (!granted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification permission is required')),
-        );
-      }
-      iftarAlertEnabledNotifier.value = false;
-      await _persistAppPreferences();
-      return;
-    }
-    iftarAlertEnabledNotifier.value = true;
-    await _persistAppPreferences();
-  }
-
-  Future<void> _testAlertNow({required bool sehri}) async {
-    final granted = await ensureNotificationPermissions();
-    if (!granted) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enable notification permission first')),
-      );
-      return;
-    }
-
-    final tone = alertToneNotifier.value;
-    final playSound = alertTonePlaySound(tone);
-    final details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        channelIdForTone(sehri ? 'sehri_alert_channel' : 'iftar_alert_channel'),
-        sehri ? 'Sehri Alerts' : 'Iftar Alerts',
-        channelDescription: sehri
-            ? 'Alert when Sehri time starts (${alertToneLabel(tone)})'
-            : 'Alert when Iftar time starts (${alertToneLabel(tone)})',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: playSound,
-        sound: alertToneSound(tone),
-        audioAttributesUsage: alertToneUsage(tone),
-      ),
-      iOS: DarwinNotificationDetails(presentSound: playSound),
-    );
-
-    try {
-      await localNotificationsPlugin.show(
-        sehri ? 9001 : 9002,
-        sehri ? 'Sehri Alert (Test)' : 'Iftar Alert (Test)',
-        sehri
-            ? 'Test notification for Sehri alert is working.'
-            : 'Test notification for Iftar alert is working.',
-        details,
-        payload: sehri ? 'sehri_test' : 'iftar_test',
-      );
-    } on PlatformException catch (_) {
-      if (!mounted) return;
-      final message = tone == AppAlertTone.adhan
-          ? 'Adhan file missing. Add adhan_alert.mp3 in android/app/src/main/res/raw and restart app.'
-          : 'Could not send test alert on this device.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-      return;
-    }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Test alert sent')));
-  }
-
-  Future<void> _selectAlertTone(AppAlertTone? tone) async {
-    if (tone == null || tone == alertToneNotifier.value) return;
-    final granted = await ensureNotificationPermissions();
-    if (!granted) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enable notification permission first')),
-      );
-      return;
-    }
-
-    alertToneNotifier.value = tone;
-    await saveAlertTonePreference(tone);
-    await _persistAppPreferences();
-    if (!mounted) return;
-    final message = tone == AppAlertTone.adhan
-        ? 'Alert tone: ${alertToneLabel(tone)}. Add adhan_alert.mp3 in android/app/src/main/res/raw/'
-        : 'Alert tone: ${alertToneLabel(tone)}';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _logout() async {
@@ -301,422 +47,592 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         );
       },
     );
-
     if (confirm != true || !mounted) return;
     Navigator.of(
       context,
     ).pushNamedAndRemoveUntil(RouteNames.signIn, (route) => false);
   }
 
+  Future<void> _setFontSize(AppFontSize value) async {
+    appFontSizeNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setDarkTheme(bool value) async {
+    darkThemeEnabledNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setShowLatinLetters(bool value) async {
+    showLatinLettersNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setShowTranslation(bool value) async {
+    showTranslationNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setShowTajweed(bool value) async {
+    showTajweedNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setAdzanNotification(bool value) async {
+    prayerAlertsEnabledNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setImsakNotification(bool value) async {
+    sehriAlertEnabledNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<String?> _pickOption({
+    required String title,
+    required List<String> options,
+    required String current,
+  }) async {
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                title: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const Divider(height: 1),
+              ...options.map((option) {
+                final selected = option == current;
+                return ListTile(
+                  title: Text(option),
+                  trailing: selected ? const Icon(Icons.check, color: _teal) : null,
+                  onTap: () => Navigator.of(sheetContext).pop(option),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _selectFontSize() async {
+    final current = appFontSizeNotifier.value;
+    final selected = await showModalBottomSheet<AppFontSize>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(
+                title: Text(
+                  'Font Size',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const Divider(height: 1),
+              ...AppFontSize.values.map((size) {
+                final selected = size == current;
+                return ListTile(
+                  title: Text(appFontSizeLabel(size)),
+                  trailing: selected ? const Icon(Icons.check, color: _teal) : null,
+                  onTap: () => Navigator.of(sheetContext).pop(size),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null || selected == current) return;
+    await _setFontSize(selected);
+  }
+
+  Uint8List? _decodeProfilePhoto(String? base64) {
+    if (base64 == null || base64.isEmpty) return null;
+    try {
+      return base64Decode(base64);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _avatar() {
+    return ValueListenableBuilder<String?>(
+      valueListenable: profilePhotoBase64Notifier,
+      builder: (context, encoded, _) {
+        final bytes = _decodeProfilePhoto(encoded);
+        if (bytes != null) {
+          return CircleAvatar(
+            radius: 19,
+            backgroundImage: MemoryImage(bytes),
+            backgroundColor: Colors.white,
+          );
+        }
+        return const CircleAvatar(
+          radius: 19,
+          backgroundColor: Color(0xFFCCD7E2),
+          child: Icon(Icons.person, color: Color(0xFF6B7A8A), size: 19),
+        );
+      },
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 12, 6, 6),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 10.5,
+            color: _mutedText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _rowTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(vertical: -2),
+      leading: Icon(icon, size: 16, color: const Color(0xFF7B8A99)),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: _titleText,
+        ),
+      ),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle,
+              style: const TextStyle(fontSize: 10, color: _mutedText, height: 1.2),
+            ),
+      trailing:
+          trailing ??
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: Color(0xFFB0BAC3),
+            size: 18,
+          ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      horizontalTitleGap: 10,
+      minVerticalPadding: 6,
+    );
+  }
+
+  Widget _switchRow({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return _rowTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+        activeTrackColor: _teal,
+        activeThumbColor: Colors.white,
+        inactiveTrackColor: const Color(0xFFD4DCE3),
+        inactiveThumbColor: const Color(0xFF90A2AF),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF4F6F8),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 28,
-                    child: Icon(Icons.person, size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ValueListenableBuilder<String>(
-                        valueListenable: profileNameNotifier,
-                        builder: (context, name, _) {
-                          return Text(
-                            name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          );
-                        },
-                      ),
-                      ValueListenableBuilder<String>(
-                        valueListenable: profileProgressNotifier,
-                        builder: (context, progress, _) {
-                          return Text(
-                            progress,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.blueGrey,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: _openEditProfile,
-                    icon: const Icon(Icons.settings_outlined),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE1E8EC)),
-                ),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Language',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    ValueListenableBuilder<AppLanguage>(
-                      valueListenable: appLanguageNotifier,
-                      builder: (context, language, _) {
-                        return ToggleButtons(
-                          borderRadius: BorderRadius.circular(8),
-                          isSelected: [
-                            language == AppLanguage.english,
-                            language == AppLanguage.bangla,
-                          ],
-                          onPressed: (index) => _toggleLanguage(index),
-                          children: const [
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('English'),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('Bangla'),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE1E8EC)),
-                ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Use Device Location',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Off = Baitul Mukarram, Dhaka',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: useDeviceLocationNotifier,
-                      builder: (context, enabled, _) {
-                        return Switch(
-                          value: enabled,
-                          onChanged: _toggleLocationMode,
-                          activeThumbColor: const Color(0xFF14A3B8),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE1E8EC)),
-                ),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Prayer Alerts',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: prayerAlertsEnabledNotifier,
-                      builder: (context, enabled, _) {
-                        return Switch(
-                          value: enabled,
-                          onChanged: _togglePrayerAlerts,
-                          activeThumbColor: const Color(0xFF14A3B8),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE1E8EC)),
-                ),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Sehri Alert',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: sehriAlertEnabledNotifier,
-                      builder: (context, enabled, _) {
-                        return Switch(
-                          value: enabled,
-                          onChanged: _toggleSehriAlert,
-                          activeThumbColor: const Color(0xFF14A3B8),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE1E8EC)),
-                ),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Iftar Alert',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: iftarAlertEnabledNotifier,
-                      builder: (context, enabled, _) {
-                        return Switch(
-                          value: enabled,
-                          onChanged: _toggleIftarAlert,
-                          activeThumbColor: const Color(0xFF14A3B8),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE1E8EC)),
-                ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Alert Tone',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Separate sound profile for app alerts',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.black54,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'For Adhan tone: res/raw/adhan_alert.mp3',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.black45,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ValueListenableBuilder<AppAlertTone>(
-                      valueListenable: alertToneNotifier,
-                      builder: (context, tone, _) {
-                        return DropdownButtonHideUnderline(
-                          child: DropdownButton<AppAlertTone>(
-                            value: tone,
-                            borderRadius: BorderRadius.circular(10),
-                            items: AppAlertTone.values.map((item) {
-                              return DropdownMenuItem<AppAlertTone>(
-                                value: item,
-                                child: Text(alertToneLabel(item)),
-                              );
-                            }).toList(),
-                            onChanged: _selectAlertTone,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
                 children: [
-                  const Text(
-                    'General',
-                    style: TextStyle(fontSize: 11, color: Colors.black54),
-                  ),
-                  ...values.entries.map(
-                    (e) => SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: Text(e.key, style: const TextStyle(fontSize: 13)),
-                      subtitle: Text(
-                        valueDescriptions[e.key] ?? '',
-                        style: const TextStyle(fontSize: 10),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+                    child: Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: _titleText,
                       ),
-                      value: e.value,
-                      activeThumbColor: const Color(0xFF14A3B8),
-                      onChanged: (v) {
-                        setState(() => values[e.key] = v);
-                        _saveGeneralToggles();
-                      },
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'App',
-                    style: TextStyle(fontSize: 11, color: Colors.black54),
-                  ),
-                  Card(
-                    margin: const EdgeInsets.only(top: 8),
-                    child: Column(
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    child: Row(
                       children: [
-                        ListTile(
-                          leading: const Icon(Icons.edit_outlined),
-                          title: const Text('Edit Profile'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: _openEditProfile,
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          leading: const Icon(Icons.privacy_tip_outlined),
-                          title: const Text('Privacy Policy'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openRoute(RouteNames.privacyPolicy),
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          leading: const Icon(Icons.info_outline),
-                          title: const Text('About & Version'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openRoute(RouteNames.about),
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          leading: const Icon(
-                            Icons.delete_sweep_outlined,
-                            color: Color(0xFFE74A5A),
+                        _avatar(),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ValueListenableBuilder<String>(
+                                valueListenable: profileNameNotifier,
+                                builder: (context, name, _) {
+                                  return Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: _titleText,
+                                      fontSize: 13,
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 1),
+                              ValueListenableBuilder<String>(
+                                valueListenable: profileLocationNotifier,
+                                builder: (context, location, _) {
+                                  return Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on_rounded,
+                                        color: _teal,
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Expanded(
+                                        child: Text(
+                                          location,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            color: _teal,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Color(0xFFBAC4CD),
+                                        size: 16,
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                          title: const Text('Clear Cache'),
-                          subtitle: const Text(
-                            'Remove offline Quran data and temporary files',
-                          ),
-                          onTap: _clearCache,
                         ),
-                        const Divider(height: 1),
-                        ListTile(
-                          leading: const Icon(Icons.notifications_active),
-                          title: const Text('Test Sehri Alert'),
-                          subtitle: const Text('Send notification now'),
-                          onTap: () => _testAlertNow(sehri: true),
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          leading: const Icon(
-                            Icons.notifications_active_outlined,
+                        IconButton(
+                          onPressed: _openEditProfile,
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 17,
+                            color: _mutedText,
                           ),
-                          title: const Text('Test Iftar Alert'),
-                          subtitle: const Text('Send notification now'),
-                          onTap: () => _testAlertNow(sehri: false),
                         ),
                       ],
                     ),
                   ),
+                  _sectionLabel('General'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        ValueListenableBuilder<AppFontSize>(
+                          valueListenable: appFontSizeNotifier,
+                          builder: (context, size, _) {
+                            return _rowTile(
+                              icon: Icons.text_fields_rounded,
+                              title: 'Font Size',
+                              subtitle: appFontSizeLabel(size),
+                              onTap: _selectFontSize,
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: darkThemeEnabledNotifier,
+                          builder: (context, enabled, _) {
+                            return _switchRow(
+                              icon: Icons.dark_mode_outlined,
+                              title: 'Dark Theme',
+                              subtitle: 'Switch to dark color scheme',
+                              value: enabled,
+                              onChanged: _setDarkTheme,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  _sectionLabel('Prayer Setting'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        ValueListenableBuilder<bool>(
+                          valueListenable: showLatinLettersNotifier,
+                          builder: (context, enabled, _) {
+                            return _switchRow(
+                              icon: Icons.short_text_rounded,
+                              title: 'Show Latin Letters',
+                              subtitle: 'Latin lyrics while navigating Al Quran',
+                              value: enabled,
+                              onChanged: _setShowLatinLetters,
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder2<bool, String>(
+                          first: showTranslationNotifier,
+                          second: translationLanguageNotifier,
+                          builder: (context, enabled, language, _) {
+                            return _switchRow(
+                              icon: Icons.translate_rounded,
+                              title: 'Show Translation',
+                              subtitle: language,
+                              value: enabled,
+                              onChanged: (value) async {
+                                await _setShowTranslation(value);
+                                if (!value) return;
+                                final selected = await _pickOption(
+                                  title: 'Translation Language',
+                                  options: const ['English', 'Bangla'],
+                                  current: language,
+                                );
+                                if (selected == null || selected == language) {
+                                  return;
+                                }
+                                translationLanguageNotifier.value = selected;
+                                await saveAppPreferences();
+                              },
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: showTajweedNotifier,
+                          builder: (context, enabled, _) {
+                            return _switchRow(
+                              icon: Icons.menu_book_outlined,
+                              title: 'Show Tajweed',
+                              subtitle: 'Click to view the tajweed detail',
+                              value: enabled,
+                              onChanged: _setShowTajweed,
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder<String>(
+                          valueListenable: translatorNotifier,
+                          builder: (context, translator, _) {
+                            return _rowTile(
+                              icon: Icons.person_outline,
+                              title: 'Translator',
+                              subtitle: translator,
+                              onTap: () async {
+                                final selected = await _pickOption(
+                                  title: 'Translator',
+                                  options: const [
+                                    'Dr. Mustafa Khattab',
+                                    'Muhiuddin Khan',
+                                    'Tafsir Ibn Kathir (Brief)',
+                                  ],
+                                  current: translator,
+                                );
+                                if (selected == null || selected == translator) {
+                                  return;
+                                }
+                                translatorNotifier.value = selected;
+                                await saveAppPreferences();
+                              },
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder<String>(
+                          valueListenable: reciterNotifier,
+                          builder: (context, reciter, _) {
+                            return _rowTile(
+                              icon: Icons.mic_none_rounded,
+                              title: 'Reciters',
+                              subtitle: reciter,
+                              onTap: () async {
+                                final selected = await _pickOption(
+                                  title: 'Reciter',
+                                  options: const [
+                                    'Mishary Rashid Alafasy',
+                                    'Saad Al-Ghamdi',
+                                    'Maher Al Muaiqly',
+                                  ],
+                                  current: reciter,
+                                );
+                                if (selected == null || selected == reciter) {
+                                  return;
+                                }
+                                reciterNotifier.value = selected;
+                                await saveAppPreferences();
+                              },
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder2<bool, String>(
+                          first: prayerAlertsEnabledNotifier,
+                          second: adzanVoiceNotifier,
+                          builder: (context, enabled, voice, _) {
+                            return _switchRow(
+                              icon: Icons.notifications_active_outlined,
+                              title: 'Adzan Notification',
+                              subtitle: voice,
+                              value: enabled,
+                              onChanged: (value) async {
+                                await _setAdzanNotification(value);
+                                if (!value) return;
+                                final selected = await _pickOption(
+                                  title: 'Adzan Voice',
+                                  options: const [
+                                    'Hanan Attaki',
+                                    'Mishary Alafasy',
+                                    'Maher Al Muaiqly',
+                                  ],
+                                  current: voice,
+                                );
+                                if (selected == null || selected == voice) {
+                                  return;
+                                }
+                                adzanVoiceNotifier.value = selected;
+                                await saveAppPreferences();
+                              },
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder2<bool, String>(
+                          first: sehriAlertEnabledNotifier,
+                          second: imsakVoiceNotifier,
+                          builder: (context, enabled, voice, _) {
+                            return _switchRow(
+                              icon: Icons.alarm_on_outlined,
+                              title: 'Imsak Notification',
+                              subtitle: voice,
+                              value: enabled,
+                              onChanged: (value) async {
+                                await _setImsakNotification(value);
+                                if (!value) return;
+                                final selected = await _pickOption(
+                                  title: 'Imsak Tone',
+                                  options: const ['Default', 'Gentle', 'Beep'],
+                                  current: voice,
+                                );
+                                if (selected == null || selected == voice) {
+                                  return;
+                                }
+                                imsakVoiceNotifier.value = selected;
+                                await saveAppPreferences();
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.center,
+                    child: FilledButton.icon(
+                      onPressed: _logout,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFE64C5B),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 9,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                      ),
+                      icon: const Icon(Icons.logout_rounded, size: 14),
+                      label: const Text(
+                        'Log Out',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 38),
-                  backgroundColor: const Color(0xFFE74A5A),
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: _logout,
-                child: const Text('Logout'),
               ),
             ),
             bottomNav(context, 4),
           ],
         ),
       ),
+    );
+  }
+}
+
+class ValueListenableBuilder2<A, B> extends StatelessWidget {
+  const ValueListenableBuilder2({
+    super.key,
+    required this.first,
+    required this.second,
+    required this.builder,
+  });
+
+  final ValueNotifier<A> first;
+  final ValueNotifier<B> second;
+  final Widget Function(BuildContext context, A a, B b, Widget? child) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<A>(
+      valueListenable: first,
+      builder: (context, a, child) {
+        return ValueListenableBuilder<B>(
+          valueListenable: second,
+          builder: (context, b, child) => builder(context, a, b, child),
+        );
+      },
     );
   }
 }

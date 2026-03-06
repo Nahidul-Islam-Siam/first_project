@@ -6,6 +6,7 @@ import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import 'surah_detail_screen.dart';
 import '../services/quran_api_service.dart';
+import '../services/quran_bookmarks_service.dart';
 import '../services/quran_content_cache_service.dart';
 import '../services/quran_last_read_service.dart';
 import '../widgets/bottom_nav.dart';
@@ -22,6 +23,7 @@ class _QuranScreenState extends State<QuranScreen> {
 
   final QuranApiService _api = QuranApiService();
   final QuranContentCacheService _contentCache = QuranContentCacheService();
+  final QuranBookmarksService _bookmarksService = QuranBookmarksService();
   final QuranLastReadService _lastReadService = QuranLastReadService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -36,6 +38,7 @@ class _QuranScreenState extends State<QuranScreen> {
   bool _showOnlyDownloaded = false;
   bool _usingCachedContent = false;
   int? _lastReadSurahNo;
+  List<QuranAyahBookmark> _bookmarks = const [];
   bool _isBulkCachingText = false;
   int _bulkCacheCompleted = 0;
   int _bulkCacheTotal = 0;
@@ -47,6 +50,7 @@ class _QuranScreenState extends State<QuranScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _loadBookmarks();
     _restoreLastRead();
     _loadChapters();
   }
@@ -69,6 +73,33 @@ class _QuranScreenState extends State<QuranScreen> {
     final saved = await _lastReadService.readLastReadSurahNo();
     if (!mounted || saved == null) return;
     setState(() => _lastReadSurahNo = saved);
+  }
+
+  Future<void> _loadBookmarks() async {
+    final items = await _bookmarksService.readAll();
+    if (!mounted) return;
+    setState(() => _bookmarks = items);
+  }
+
+  QuranChapter _resolveChapterForBookmark(QuranAyahBookmark bookmark) {
+    for (final chapter in _chapters) {
+      if (chapter.surahNo == bookmark.surahNo) {
+        return chapter;
+      }
+    }
+    final fallbackName = bookmark.surahName.trim();
+    final surahName = fallbackName.isEmpty
+        ? 'Surah ${bookmark.surahNo}'
+        : fallbackName;
+    return QuranChapter(
+      surahNo: bookmark.surahNo,
+      surahName: surahName,
+      surahNameArabic: '...',
+      surahNameArabicLong: '...',
+      surahNameTranslation: '',
+      revelationPlace: '',
+      totalAyah: 0,
+    );
   }
 
   Future<void> _loadChapters() async {
@@ -232,6 +263,7 @@ class _QuranScreenState extends State<QuranScreen> {
   Future<void> _showSurahDetail(
     QuranChapter chapter, {
     bool autoStartAudio = false,
+    int? initialAyahNo,
   }) async {
     if (_lastReadSurahNo != chapter.surahNo) {
       setState(() => _lastReadSurahNo = chapter.surahNo);
@@ -240,10 +272,14 @@ class _QuranScreenState extends State<QuranScreen> {
 
     final downloaded = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) =>
-            SurahDetailScreen(chapter: chapter, autoStartAudio: autoStartAudio),
+        builder: (_) => SurahDetailScreen(
+          chapter: chapter,
+          autoStartAudio: autoStartAudio,
+          initialAyahNo: initialAyahNo,
+        ),
       ),
     );
+    await _loadBookmarks();
     if (!mounted || downloaded != true) return;
     setState(() => _downloadedSurahNos.add(chapter.surahNo));
   }
@@ -294,6 +330,63 @@ class _QuranScreenState extends State<QuranScreen> {
         );
       },
     );
+  }
+
+  Future<void> _openBookmarksSheet() async {
+    await _loadBookmarks();
+    if (!mounted) return;
+    if (_bookmarks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No saved ayah bookmarks yet')),
+      );
+      return;
+    }
+
+    final selected = await showModalBottomSheet<QuranAyahBookmark>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return ListView.separated(
+          itemCount: _bookmarks.length + 1,
+          separatorBuilder: (context, index) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return ListTile(
+                title: Text(
+                  'Saved Bookmarks (${_bookmarks.length})',
+                  style: const TextStyle(
+                    color: BrandColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
+            }
+
+            final item = _bookmarks[index - 1];
+            final note = item.note.trim();
+            final subtitle = note.isEmpty
+                ? 'Surah ${item.surahNo}, Ayah ${item.ayahNo}'
+                : note;
+
+            return ListTile(
+              leading: const Icon(Icons.bookmark_rounded),
+              title: Text('${item.surahName} • ${item.ayahNo}'),
+              subtitle: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () => Navigator.of(sheetContext).pop(item),
+            );
+          },
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+    final chapter = _resolveChapterForBookmark(selected);
+    await _showSurahDetail(chapter, initialAyahNo: selected.ayahNo);
   }
 
   Widget _buildHeader() {
@@ -536,6 +629,13 @@ class _QuranScreenState extends State<QuranScreen> {
                         ),
                       ),
                       _HeaderQuickActionChip(
+                        icon: _bookmarks.isEmpty
+                            ? Icons.bookmark_border_rounded
+                            : Icons.bookmarks_rounded,
+                        label: 'Bookmarks',
+                        onTap: _openBookmarksSheet,
+                      ),
+                      _HeaderQuickActionChip(
                         icon: Icons.ondemand_video_rounded,
                         label: 'Video',
                         onTap: _showVideoInfo,
@@ -715,7 +815,7 @@ class _QuranScreenState extends State<QuranScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                  ? Center( 
+                  ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [

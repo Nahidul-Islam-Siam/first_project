@@ -9,6 +9,7 @@ import '../models/quran_models.dart';
 import '../services/quran_api_service.dart';
 import '../services/quran_ayah_audio_service.dart';
 import '../services/quran_offline_download_service.dart';
+import '../services/quran_bookmarks_service.dart';
 import '../services/quran_tafsir_service.dart';
 import '../services/quran_timing_service.dart';
 
@@ -17,10 +18,12 @@ class SurahDetailScreen extends StatefulWidget {
     super.key,
     required this.chapter,
     this.autoStartAudio = false,
+    this.initialAyahNo,
   });
 
   final QuranChapter chapter;
   final bool autoStartAudio;
+  final int? initialAyahNo;
 
   @override
   State<SurahDetailScreen> createState() => _SurahDetailScreenState();
@@ -30,6 +33,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   final QuranApiService _api = QuranApiService();
   final QuranAyahAudioService _ayahAudio = QuranAyahAudioService();
   final QuranOfflineDownloadService _offline = QuranOfflineDownloadService();
+  final QuranBookmarksService _bookmarks = QuranBookmarksService();
   final QuranTafsirService _tafsir = QuranTafsirService();
   final QuranTimingService _timing = QuranTimingService();
   final AudioPlayer _player = AudioPlayer();
@@ -63,12 +67,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   int? _singleAyahIndex;
   int? _singleAyahStopMs;
   bool _isStoppingSingleAyah = false;
+  bool _didJumpToInitialAyah = false;
+  Map<int, QuranAyahBookmark> _bookmarksByAyahNo = const {};
 
   @override
   void initState() {
     super.initState();
     _bindAudioStreams();
     _loadSurahDetail();
+    _loadBookmarksForCurrentSurah();
   }
 
   @override
@@ -345,6 +352,232 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   Key _keyForAyahItem(int ayahIndex) {
     return _ayahItemKeys.putIfAbsent(ayahIndex, GlobalKey.new);
+  }
+
+  Future<void> _loadBookmarksForCurrentSurah() async {
+    final items = await _bookmarks.readBySurah(widget.chapter.surahNo);
+    if (!mounted) return;
+    final map = <int, QuranAyahBookmark>{};
+    for (final item in items) {
+      map[item.ayahNo] = item;
+    }
+    setState(() => _bookmarksByAyahNo = map);
+  }
+
+  QuranAyahBookmark? _bookmarkForAyah(int ayahNo) {
+    return _bookmarksByAyahNo[ayahNo];
+  }
+
+  Future<void> _saveAyahBookmark({
+    required int ayahNo,
+    required String note,
+  }) async {
+    final detail = _detail;
+    if (detail == null) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _bookmarks.upsert(
+      QuranAyahBookmark(
+        surahNo: detail.surahNo,
+        surahName: detail.surahName,
+        ayahNo: ayahNo,
+        note: note,
+        updatedAtMillis: now,
+      ),
+    );
+    await _loadBookmarksForCurrentSurah();
+  }
+
+  Future<void> _removeAyahBookmark(int ayahNo) async {
+    await _bookmarks.remove(surahNo: widget.chapter.surahNo, ayahNo: ayahNo);
+    await _loadBookmarksForCurrentSurah();
+  }
+
+  void _scrollToAyah(int ayahIndex, {bool animated = true}) {
+    final key = _ayahItemKeys[ayahIndex];
+    final contextForAyah = key?.currentContext;
+    if (contextForAyah == null) return;
+    Scrollable.ensureVisible(
+      contextForAyah,
+      duration: animated ? const Duration(milliseconds: 260) : Duration.zero,
+      curve: Curves.easeOutCubic,
+      alignment: 0.16,
+    );
+  }
+
+  void _jumpToInitialAyahIfNeeded() {
+    if (_didJumpToInitialAyah) return;
+    final initialAyahNo = widget.initialAyahNo;
+    if (initialAyahNo == null || initialAyahNo <= 0) return;
+    _didJumpToInitialAyah = true;
+    final ayahIndex = initialAyahNo - 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 140));
+      if (!mounted) return;
+      _scrollToAyah(ayahIndex, animated: false);
+    });
+  }
+
+  Future<void> _openAyahBookmarkSheet(int ayahIndex) async {
+    final detail = _detail;
+    if (detail == null) return;
+    final ayahNo = ayahIndex + 1;
+    final existing = _bookmarkForAyah(ayahNo);
+    final noteController = TextEditingController(text: existing?.note ?? '');
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ayah ${ayahNo.toString()} Bookmark',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: BrandColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: noteController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Add your note for this ayah...',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FBFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: BrandColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: BrandColors.border),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (existing != null) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(sheetContext).pop('remove'),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: const Text('Remove'),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.of(sheetContext).pop('save'),
+                      icon: const Icon(Icons.bookmark_rounded),
+                      label: Text(
+                        existing == null ? 'Save Bookmark' : 'Update',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (action == null || !mounted) {
+      noteController.dispose();
+      return;
+    }
+
+    if (action == 'remove') {
+      await _removeAyahBookmark(ayahNo);
+      if (!mounted) {
+        noteController.dispose();
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bookmark removed')));
+      noteController.dispose();
+      return;
+    }
+
+    final note = noteController.text.trim();
+    await _saveAyahBookmark(ayahNo: ayahNo, note: note);
+    if (!mounted) {
+      noteController.dispose();
+      return;
+    }
+    final message = note.isEmpty ? 'Ayah bookmarked' : 'Bookmark note saved';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+    noteController.dispose();
+  }
+
+  Future<void> _openBookmarksSheet() async {
+    final items = _bookmarksByAyahNo.values.toList(growable: false)
+      ..sort((a, b) => a.ayahNo.compareTo(b.ayahNo));
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No bookmarks in this surah')),
+      );
+      return;
+    }
+
+    final selected = await showModalBottomSheet<QuranAyahBookmark>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return ListView.separated(
+          shrinkWrap: true,
+          itemCount: items.length + 1,
+          separatorBuilder: (context, index) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return ListTile(
+                title: Text(
+                  'Bookmarks (${items.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: BrandColors.textPrimary,
+                  ),
+                ),
+              );
+            }
+            final item = items[index - 1];
+            final subtitle = item.note.trim().isEmpty
+                ? 'Saved bookmark'
+                : item.note.trim();
+            return ListTile(
+              leading: const Icon(Icons.bookmark_rounded),
+              title: Text('Ayah ${item.ayahNo}'),
+              subtitle: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () => Navigator.of(sheetContext).pop(item),
+            );
+          },
+        );
+      },
+    );
+
+    if (selected == null) return;
+    final ayahIndex = selected.ayahNo - 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToAyah(ayahIndex);
+    });
   }
 
   Widget _buildArabicAyahText({
@@ -1021,12 +1254,17 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     required int index,
     required String arabic,
     required String bengali,
+    required QuranAyahBookmark? bookmark,
     required bool highlighted,
     required int highlightedWordIndex,
     required VoidCallback onTap,
     required VoidCallback onPlayAyah,
+    required VoidCallback onBookmarkTap,
     required bool isSingleAyahPlaying,
   }) {
+    final hasBookmark = bookmark != null;
+    final bookmarkNote = bookmark?.note.trim() ?? '';
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1082,6 +1320,22 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ),
                   const Spacer(),
                   IconButton(
+                    tooltip: hasBookmark
+                        ? 'Edit bookmark note'
+                        : 'Bookmark this ayah',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onBookmarkTap,
+                    icon: Icon(
+                      hasBookmark
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      size: 22,
+                      color: hasBookmark
+                          ? BrandColors.primaryDark
+                          : BrandColors.textMuted,
+                    ),
+                  ),
+                  IconButton(
                     tooltip: isSingleAyahPlaying
                         ? 'Playing this ayah'
                         : 'Play this ayah',
@@ -1129,6 +1383,31 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (bookmarkNote.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BrandColors.tintBackground,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: BrandColors.border),
+                  ),
+                  child: Text(
+                    bookmarkNote,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: BrandColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1155,6 +1434,30 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           ),
           title: Text(widget.chapter.surahName),
           actions: [
+            IconButton(
+              tooltip: 'Bookmarks',
+              onPressed: _openBookmarksSheet,
+              icon: _bookmarksByAyahNo.isNotEmpty
+                  ? Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Icon(Icons.bookmarks_rounded),
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFD54F),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Icon(Icons.bookmarks_outlined),
+            ),
             IconButton(
               tooltip: 'Audio player',
               onPressed: _detail == null
@@ -1196,6 +1499,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   );
                   final activeAyahIndex = _activeAyahIndex(totalAyah);
                   _maybeAutoScrollToAyah(activeAyahIndex);
+                  _jumpToInitialAyahIfNeeded();
 
                   return Column(
                     children: [
@@ -1240,6 +1544,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                             final bengali = index < detail.bengaliAyahs.length
                                 ? detail.bengaliAyahs[index]
                                 : '';
+                            final bookmark = _bookmarkForAyah(index + 1);
                             final wordHighlightIndex = _activeWordIndexForAyah(
                               index,
                               arabic,
@@ -1250,10 +1555,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                               index: index,
                               arabic: arabic,
                               bengali: bengali,
+                              bookmark: bookmark,
                               highlighted: index == activeAyahIndex,
                               highlightedWordIndex: wordHighlightIndex,
                               onTap: () => _openAyahTafsirSheet(index),
                               onPlayAyah: () => _playSingleAyah(index),
+                              onBookmarkTap: () =>
+                                  _openAyahBookmarkSheet(index),
                               isSingleAyahPlaying:
                                   _singleAyahMode &&
                                   _singleAyahIndex == index &&
