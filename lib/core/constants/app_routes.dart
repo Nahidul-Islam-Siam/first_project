@@ -6,6 +6,7 @@ import 'package:first_project/features/profile/screens/edit_profile_screen.dart'
 import 'package:first_project/features/legal/screens/about_screen.dart';
 import 'package:first_project/features/asmaul_husna/screens/asma_screen.dart';
 import 'package:first_project/features/dua/screens/dua_screen.dart';
+import 'package:first_project/features/mosque/screens/find_mosque_screen.dart';
 import 'package:first_project/features/profile/screens/profile_preferences_screen.dart';
 import 'package:first_project/features/legal/screens/privacy_policy_screen.dart';
 import 'package:first_project/features/quran/screens/quran_screen.dart';
@@ -13,15 +14,12 @@ import 'package:first_project/features/qibla/screens/qibla_compass_screen.dart';
 import 'package:first_project/features/splash/screens/ramadan_splash_screen.dart';
 import 'package:first_project/features/auth/screens/signin_screen.dart';
 import 'package:first_project/features/auth/screens/signup_screen.dart';
-import 'package:first_project/features/home/screens/ui_preview_home.dart';
 
 class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case RouteNames.home:
         return _page(const DailyActivityScreen(), settings);
-      case RouteNames.preview:
-        return _page(const UiPreviewHome(), settings);
       case RouteNames.splash:
         return _page(const RamadanSplashScreen(), settings);
       case RouteNames.signIn:
@@ -42,6 +40,8 @@ class AppRoutes {
         return _page(const QuranScreen(), settings);
       case RouteNames.prayerCompass:
         return _page(const QiblaCompassScreen(), settings);
+      case RouteNames.findMosque:
+        return _page(const FindMosqueScreen(), settings);
       case RouteNames.privacyPolicy:
         return _page(const PrivacyPolicyScreen(), settings);
       case RouteNames.about:

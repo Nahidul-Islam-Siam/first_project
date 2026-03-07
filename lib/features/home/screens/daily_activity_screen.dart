@@ -1580,101 +1580,121 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                   const SizedBox(height: 12),
                   Material(
                     color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pushNamed(RouteNames.prayerCompass),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFE1E8EC)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE1E8EC)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pushNamed(RouteNames.prayerCompass),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Locate',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF1F252D),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Locate',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF1F252D),
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Qibla',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Qibla',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1D98A9),
+                                      borderRadius: BorderRadius.circular(1000),
+                                    ),
+                                    padding: const EdgeInsets.all(8),
+                                    child: const Icon(
+                                      Icons.explore,
+                                      color: Colors.white,
+                                      size: 16,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1D98A9),
-                                borderRadius: BorderRadius.circular(1000),
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              child: const Icon(
-                                Icons.explore,
-                                color: Colors.white,
-                                size: 16,
-                              ),
+                          ),
+                          const SizedBox(width: 14),
+                          const SizedBox(
+                            height: 48,
+                            child: VerticalDivider(
+                              color: Color(0xFFE1E8EC),
+                              thickness: 1,
                             ),
-                            const SizedBox(width: 14),
-                            const SizedBox(
-                              height: 48,
-                              child: VerticalDivider(
-                                color: Color(0xFFE1E8EC),
-                                thickness: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pushNamed(RouteNames.findMosque),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Find nearest',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF1F252D),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Find nearest',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF1F252D),
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Mosque',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Mosque',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1D98A9),
+                                      borderRadius: BorderRadius.circular(1000),
+                                    ),
+                                    padding: const EdgeInsets.all(8),
+                                    child: const Icon(
+                                      Icons.location_city,
+                                      color: Colors.white,
+                                      size: 16,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1D98A9),
-                                borderRadius: BorderRadius.circular(1000),
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              child: const Icon(
-                                Icons.location_city,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

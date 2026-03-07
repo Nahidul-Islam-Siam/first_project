@@ -1,6 +1,5 @@
 class RouteNames {
   static const home = '/';
-  static const preview = '/preview';
   static const splash = '/splash';
   static const signIn = '/signin';
   static const signUp = '/signup';
@@ -11,6 +10,7 @@ class RouteNames {
   static const dua = '/dua';
   static const quran = '/quran';
   static const prayerCompass = '/prayer-compass';
+  static const findMosque = '/find-mosque';
   static const privacyPolicy = '/privacy-policy';
   static const about = '/about';
 }
