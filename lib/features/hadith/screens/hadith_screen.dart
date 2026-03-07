@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/hadith/models/hadith_item.dart';
 import 'package:first_project/features/hadith/services/hadith_service.dart';
+import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
 
 class HadithScreen extends StatefulWidget {
@@ -21,19 +22,30 @@ class _HadithScreenState extends State<HadithScreen> {
   String _query = '';
   List<HadithItem> _hadiths = const [];
 
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+
+  String _text(String english, String bangla) => _isBangla ? bangla : english;
+
   @override
   void initState() {
     super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
     _searchController.addListener(_onSearchChanged);
     _loadHadiths();
   }
 
   @override
   void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
     _searchController
       ..removeListener(_onSearchChanged)
       ..dispose();
     super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _onSearchChanged() {
@@ -80,12 +92,29 @@ class _HadithScreenState extends State<HadithScreen> {
   }
 
   String _categoryLabel(String value) {
-    if (value.trim().isEmpty) return 'General';
-    return value
-        .split('_')
-        .where((part) => part.isNotEmpty)
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-        .join(' ');
+    final normalized = value.trim();
+    if (!_isBangla) {
+      if (normalized.isEmpty) return 'General';
+      return normalized
+          .split('_')
+          .where((part) => part.isNotEmpty)
+          .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+          .join(' ');
+    }
+    switch (normalized) {
+      case 'revelation':
+        return 'ওহী';
+      case 'belief':
+        return 'ঈমান';
+      case 'knowledge':
+        return 'জ্ঞান';
+      case 'prayers_salat':
+        return 'সালাত';
+      case 'good_manners_and_form_al_adab':
+        return 'আদব';
+      default:
+        return 'সাধারণ';
+    }
   }
 
   void _openHadithDetails(HadithItem item) {
@@ -138,8 +167,8 @@ class _HadithScreenState extends State<HadithScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'English',
+                Text(
+                  _text('English', 'ইংরেজি'),
                   style: TextStyle(
                     fontSize: 12,
                     color: BrandColors.textMuted,
@@ -156,8 +185,8 @@ class _HadithScreenState extends State<HadithScreen> {
                 ),
                 if (item.bangla.trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  const Text(
-                    'Bangla',
+                  Text(
+                    _text('Bangla', 'বাংলা'),
                     style: TextStyle(
                       fontSize: 12,
                       color: BrandColors.textMuted,
@@ -183,8 +212,13 @@ class _HadithScreenState extends State<HadithScreen> {
 
   void _onTapPlay(HadithItem item) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Hadith audio will be added in a future update.'),
+      SnackBar(
+        content: Text(
+          _text(
+            'Hadith audio will be added in a future update.',
+            'হাদিস অডিও ভবিষ্যৎ আপডেটে যোগ করা হবে।',
+          ),
+        ),
       ),
     );
   }
@@ -222,7 +256,7 @@ class _HadithScreenState extends State<HadithScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Sahih Bukhari (50)',
+                          _text('Sahih Bukhari (50)', 'সহিহ বুখারি (৫০)'),
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(
                                 color: Colors.white,
@@ -255,7 +289,10 @@ class _HadithScreenState extends State<HadithScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Lightweight offline hadith collection for initial release',
+                    _text(
+                      'Lightweight offline hadith collection for initial release',
+                      'প্রথম রিলিজের জন্য হালকা অফলাইন হাদিস সংগ্রহ',
+                    ),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: const Color(0xE8FFFFFF),
                       fontWeight: FontWeight.w500,
@@ -265,7 +302,10 @@ class _HadithScreenState extends State<HadithScreen> {
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search hadith, category, or reference',
+                      hintText: _text(
+                        'Search hadith, category, or reference',
+                        'হাদিস, ক্যাটাগরি বা রেফারেন্স খুঁজুন',
+                      ),
                       prefixIcon: const Icon(Icons.search_rounded),
                       filled: true,
                       fillColor: Colors.white,
@@ -300,7 +340,7 @@ class _HadithScreenState extends State<HadithScreen> {
                             const SizedBox(height: 10),
                             FilledButton(
                               onPressed: _loadHadiths,
-                              child: const Text('Retry'),
+                              child: Text(_text('Retry', 'আবার চেষ্টা')),
                             ),
                           ],
                         ),
@@ -370,8 +410,8 @@ class _HadithScreenState extends State<HadithScreen> {
                                     ),
                                     IconButton.filledTonal(
                                       tooltip: hasAudio
-                                          ? 'Play audio'
-                                          : 'No audio yet',
+                                          ? _text('Play audio', 'অডিও চালান')
+                                          : _text('No audio yet', 'অডিও নেই'),
                                       onPressed: hasAudio
                                           ? () => _onTapPlay(item)
                                           : null,

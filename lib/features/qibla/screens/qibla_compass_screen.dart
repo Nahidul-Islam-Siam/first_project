@@ -48,10 +48,18 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
   String _locationLabel = 'Locating...';
   _QiblaSource _qiblaSource = _QiblaSource.none;
 
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+
+  String _text(String english, String bangla) => _isBangla ? bangla : english;
+
+  String _fallbackLocationLabel() =>
+      _text('Baitul Mukarram, Dhaka', 'বায়তুল মোকাররম, ঢাকা');
+
   @override
   void initState() {
     super.initState();
     useDeviceLocationNotifier.addListener(_onLocationModeChanged);
+    appLanguageNotifier.addListener(_onLanguageChanged);
     _startCompassListener();
     unawaited(_loadQiblaDirection());
   }
@@ -59,12 +67,17 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
   @override
   void dispose() {
     useDeviceLocationNotifier.removeListener(_onLocationModeChanged);
+    appLanguageNotifier.removeListener(_onLanguageChanged);
     _compassSub?.cancel();
     super.dispose();
   }
 
   void _onLocationModeChanged() {
     unawaited(_loadQiblaDirection());
+  }
+
+  void _onLanguageChanged() {
+    _safeSetState(() {});
   }
 
   void _safeSetState(VoidCallback fn) {
@@ -77,7 +90,10 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
     final stream = FlutterCompass.events;
     if (stream == null) {
       _safeSetState(() {
-        _sensorError = 'Compass is not available on this device.';
+        _sensorError = _text(
+          'Compass is not available on this device.',
+          'এই ডিভাইসে কম্পাস সেন্সর নেই।',
+        );
         _isListening = false;
       });
       return;
@@ -100,7 +116,10 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
       },
       onError: (_) {
         _safeSetState(() {
-          _sensorError = 'Could not read compass sensor.';
+          _sensorError = _text(
+            'Could not read compass sensor.',
+            'কম্পাস সেন্সর থেকে ডাটা পাওয়া যায়নি।',
+          );
           _isListening = false;
         });
       },
@@ -163,7 +182,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
       return (
         lat: _baitulMukarramLat,
         lng: _baitulMukarramLng,
-        label: 'Baitul Mukarram, Dhaka',
+        label: _fallbackLocationLabel(),
         usingFallbackLocation: true,
       );
     }
@@ -174,7 +193,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
         return (
           lat: _baitulMukarramLat,
           lng: _baitulMukarramLng,
-          label: 'Baitul Mukarram, Dhaka',
+          label: _fallbackLocationLabel(),
           usingFallbackLocation: true,
         );
       }
@@ -189,7 +208,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
         return (
           lat: _baitulMukarramLat,
           lng: _baitulMukarramLng,
-          label: 'Baitul Mukarram, Dhaka',
+          label: _fallbackLocationLabel(),
           usingFallbackLocation: true,
         );
       }
@@ -209,7 +228,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
       return (
         lat: _baitulMukarramLat,
         lng: _baitulMukarramLng,
-        label: 'Baitul Mukarram, Dhaka',
+        label: _fallbackLocationLabel(),
         usingFallbackLocation: true,
       );
     }
@@ -218,14 +237,16 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
   Future<String> _resolveLocationLabel(double lat, double lng) async {
     try {
       final placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isEmpty) return 'Current location';
+      if (placemarks.isEmpty) {
+        return _text('Current location', 'বর্তমান অবস্থান');
+      }
       final place = placemarks.first;
 
       final city =
           place.locality ??
           place.subAdministrativeArea ??
           place.administrativeArea ??
-          'Current location';
+          _text('Current location', 'বর্তমান অবস্থান');
       final region = place.subAdministrativeArea ?? place.administrativeArea;
       final country = place.country;
 
@@ -240,7 +261,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
       if (trailing.isEmpty) return city;
       return '$city, ${trailing.join(', ')}';
     } catch (_) {
-      return 'Current location';
+      return _text('Current location', 'বর্তমান অবস্থান');
     }
   }
 
@@ -291,32 +312,48 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
     final delta = _signedDelta(bearing, heading);
     final angle = delta.abs().round();
     if (angle < 1) return '0$_deg';
+    if (_isBangla) {
+      return '$angle$_deg ${delta >= 0 ? 'পূর্ব' : 'পশ্চিম'}';
+    }
     return '$angle$_deg ${delta >= 0 ? 'E' : 'W'}';
   }
 
   String _qiblaSourceText() {
     switch (_qiblaSource) {
       case _QiblaSource.api:
-        return 'Qibla source: API';
+        return _text('Qibla source: API', 'কিবলা সোর্স: API');
       case _QiblaSource.basic:
-        return 'Qibla source: Basic fallback';
+        return _text(
+          'Qibla source: Basic fallback',
+          'কিবলা সোর্স: বেসিক ফলব্যাক',
+        );
       case _QiblaSource.none:
-        return 'Qibla source: --';
+        return _text('Qibla source: --', 'কিবলা সোর্স: --');
     }
   }
 
   String _statusHint() {
     if (_sensorError != null) return _sensorError!;
     if (_heading == null) {
-      return 'Move your phone in a figure-8 to calibrate the compass.';
+      return _text(
+        'Move your phone in a figure-8 to calibrate the compass.',
+        'কম্পাস ক্যালিব্রেট করতে ফোনটি ৮ আকৃতিতে নাড়ান।',
+      );
     }
     if (_qiblaBearing == null) {
-      return 'Fetching Qibla direction...';
+      return _text('Fetching Qibla direction...', 'কিবলার দিক আনা হচ্ছে...');
     }
     final delta = _signedDelta(_qiblaBearing!, _heading!);
     final absDelta = delta.abs();
-    if (absDelta < 4) return 'You are facing Qibla.';
+    if (absDelta < 4) {
+      return _text('You are facing Qibla.', 'আপনি কিবলা মুখী আছেন।');
+    }
     final angle = absDelta.round();
+    if (_isBangla) {
+      return delta > 0
+          ? 'কিবলার দিকে যেতে ডানে $angle$_deg ঘুরুন।'
+          : 'কিবলার দিকে যেতে বামে $angle$_deg ঘুরুন।';
+    }
     return delta > 0
         ? 'Turn right $angle$_deg to face Qibla.'
         : 'Turn left $angle$_deg to face Qibla.';
@@ -325,7 +362,10 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
   ({String primary, String secondary}) _locationTextLines() {
     final normalized = _locationLabel.trim();
     if (normalized.isEmpty) {
-      return (primary: 'Current location', secondary: '');
+      return (
+        primary: _text('Current location', 'বর্তমান অবস্থান'),
+        secondary: '',
+      );
     }
 
     final parts = normalized
@@ -369,8 +409,8 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          'Compass',
+                        Text(
+                          _text('Compass', 'কম্পাস'),
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.w700,
@@ -380,8 +420,11 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Phone sensor heading + Qibla direction',
+                    Text(
+                      _text(
+                        'Phone sensor heading + Qibla direction',
+                        'ফোন সেন্সর হেডিং + কিবলার দিক',
+                      ),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15,
@@ -496,7 +539,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Qibla: ${_qiblaValueText()}',
+                      '${_text('Qibla', 'কিবলা')}: ${_qiblaValueText()}',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Color(0xFF5D778A),
@@ -539,7 +582,10 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
                     if (_distanceKm != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '${_distanceKm!.toStringAsFixed(0)} km to Kaaba',
+                        _text(
+                          '${_distanceKm!.toStringAsFixed(0)} km to Kaaba',
+                          '${_distanceKm!.toStringAsFixed(0)} কিমি দূরে কাবা',
+                        ),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF90A4B3),
@@ -549,8 +595,11 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
                     ],
                     if (_usingFallbackLocation) ...[
                       const SizedBox(height: 6),
-                      const Text(
-                        'Using fallback location (Dhaka)',
+                      Text(
+                        _text(
+                          'Using fallback location (Dhaka)',
+                          'ফলব্যাক লোকেশন (ঢাকা) ব্যবহার হচ্ছে',
+                        ),
                         style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF9A7A27),
@@ -572,8 +621,8 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
                         shape: const StadiumBorder(),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text(
-                        'Refresh',
+                      label: Text(
+                        _text('Refresh', 'রিফ্রেশ'),
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 20,

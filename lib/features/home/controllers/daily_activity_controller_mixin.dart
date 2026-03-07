@@ -22,13 +22,13 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   bool _isRefreshingLocation = false;
   String _locationLabel = 'Detecting location...';
   String _countdownLabel = 'Calculating prayer...';
-  String _activePrayer = 'Dzuhr';
+  String _activePrayer = 'Zuhr';
   Duration _activeRemaining = Duration.zero;
   double _activeProgress = 0.0;
   Map<String, String> _prayerTimes = const {
     'Fajr': '--:--',
-    'Dzuhr': '--:--',
-    'Ashr': '--:--',
+    'Zuhr': '--:--',
+    'Asr': '--:--',
     'Maghrib': '--:--',
     'Isha': '--:--',
   };
@@ -37,8 +37,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   final int _dailyGoal = 6;
   final List<String> _prayerOrder = const [
     'Fajr',
-    'Dzuhr',
-    'Ashr',
+    'Zuhr',
+    'Asr',
     'Maghrib',
     'Isha',
   ];
@@ -250,8 +250,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     if (!_isBangla) return name;
     const map = {
       'Fajr': '\u09ab\u099c\u09b0',
-      'Dzuhr': '\u09af\u09cb\u09b9\u09b0',
-      'Ashr': '\u0986\u09b8\u09b0',
+      'Zuhr': '\u09af\u09cb\u09b9\u09b0',
+      'Asr': '\u0986\u09b8\u09b0',
       'Maghrib': '\u09ae\u09be\u0997\u09b0\u09bf\u09ac',
       'Isha': '\u0987\u09b6\u09be',
     };
@@ -349,8 +349,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
           ? _toBanglaDigits(chapter.surahNo.toString())
           : chapter.surahNo.toString();
       return _isBangla
-          ? '${chapter.surahName} â€¢ \u09b8\u09c2\u09b0\u09be $surahNo'
-          : '${chapter.surahName} â€¢ Surah $surahNo';
+          ? '${chapter.surahName} • \u09b8\u09c2\u09b0\u09be $surahNo'
+          : '${chapter.surahName} • Surah $surahNo';
     }
 
     if (_lastReadSurahNo != null) {
@@ -596,12 +596,12 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       );
       await _schedulePrayerNotification(
         id: dzuhrNotificationId,
-        prayerName: 'Dzuhr',
+        prayerName: 'Zuhr',
         at: schedule.dzuhr,
       );
       await _schedulePrayerNotification(
         id: ashrNotificationId,
-        prayerName: 'Ashr',
+        prayerName: 'Asr',
         at: schedule.ashr,
       );
       await _schedulePrayerNotification(
@@ -962,8 +962,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       _lastPrayerCalcDate = today;
       _prayerTimes = {
         'Fajr': _formatPrayerTime(fajr),
-        'Dzuhr': _formatPrayerTime(dzuhr),
-        'Ashr': _formatPrayerTime(ashr),
+        'Zuhr': _formatPrayerTime(dzuhr),
+        'Asr': _formatPrayerTime(ashr),
         'Maghrib': _formatPrayerTime(maghrib),
         'Isha': _formatPrayerTime(isha),
       };
@@ -1067,8 +1067,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   }) {
     final schedule = <MapEntry<String, DateTime>>[
       MapEntry('Fajr', fajr),
-      MapEntry('Dzuhr', dzuhr),
-      MapEntry('Ashr', ashr),
+      MapEntry('Zuhr', dzuhr),
+      MapEntry('Asr', ashr),
       MapEntry('Maghrib', maghrib),
       MapEntry('Isha', isha),
     ];

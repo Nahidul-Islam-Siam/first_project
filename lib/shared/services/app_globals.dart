@@ -48,7 +48,7 @@ String appFontSizeLabel(AppFontSize size) {
 }
 
 final ValueNotifier<AppLanguage> appLanguageNotifier =
-    ValueNotifier<AppLanguage>(AppLanguage.english);
+    ValueNotifier<AppLanguage>(AppLanguage.bangla);
 final ValueNotifier<bool> useDeviceLocationNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> prayerAlertsEnabledNotifier = ValueNotifier<bool>(
   true,
@@ -64,14 +64,14 @@ final ValueNotifier<String> profileNameNotifier = ValueNotifier<String>(
   'Tuafel Ahmed Zuarder',
 );
 final ValueNotifier<String> profileLocationNotifier = ValueNotifier<String>(
-  'Sylhet, Bangladesh',
+  'Dhaka, Bangladesh',
 );
 final ValueNotifier<String?> profilePhotoBase64Notifier =
     ValueNotifier<String?>(null);
 final ValueNotifier<bool> showLatinLettersNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> showTranslationNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<String> translationLanguageNotifier = ValueNotifier<String>(
-  'English',
+  'Bangla',
 );
 final ValueNotifier<bool> showTajweedNotifier = ValueNotifier<bool>(false);
 final ValueNotifier<String> translatorNotifier = ValueNotifier<String>(
@@ -94,7 +94,43 @@ final ValueNotifier<int> hifzRepeatCountNotifier = ValueNotifier<int>(3);
 
 const _alertToneCacheKey = 'alert_tone_preference_v1';
 const _appPreferencesCacheKey = 'app_preferences_v1';
+const _appPreferencesSchemaVersion = 2;
 final BaseCacheManager _settingsCache = DefaultCacheManager();
+
+bool _applyLegacyBanglaMigration(Map<dynamic, dynamic> json) {
+  final storedLanguage = (json['language'] ?? '').toString().trim();
+  final storedTranslation = (json['translationLanguage'] ?? '')
+      .toString()
+      .trim();
+  final storedLocation = (json['profileLocation'] ?? '').toString().trim();
+
+  var changed = false;
+
+  final looksLegacyLanguage =
+      storedLanguage.isEmpty || storedLanguage.toLowerCase() == 'english';
+  if (looksLegacyLanguage && appLanguageNotifier.value != AppLanguage.bangla) {
+    appLanguageNotifier.value = AppLanguage.bangla;
+    changed = true;
+  }
+
+  final looksLegacyTranslation =
+      storedTranslation.isEmpty ||
+      storedTranslation.toLowerCase() == 'english';
+  if (looksLegacyTranslation && translationLanguageNotifier.value != 'Bangla') {
+    translationLanguageNotifier.value = 'Bangla';
+    changed = true;
+  }
+
+  final looksLegacyLocation =
+      storedLocation.isEmpty || storedLocation == 'Sylhet, Bangladesh';
+  if (looksLegacyLocation &&
+      profileLocationNotifier.value != 'Dhaka, Bangladesh') {
+    profileLocationNotifier.value = 'Dhaka, Bangladesh';
+    changed = true;
+  }
+
+  return changed;
+}
 
 String alertToneLabel(AppAlertTone tone) {
   switch (tone) {
@@ -187,6 +223,7 @@ Future<void> loadAppPreferences() async {
     final json = jsonDecode(await cached.file.readAsString());
     if (json is! Map) return;
 
+    final schemaVersion = (json['schema_version'] as num?)?.toInt() ?? 1;
     final language = (json['language'] ?? '').toString();
     appLanguageNotifier.value = language == 'bangla'
         ? AppLanguage.bangla
@@ -301,6 +338,13 @@ Future<void> loadAppPreferences() async {
     if (hifzRepeatCount != null && [1, 3, 5, 10].contains(hifzRepeatCount)) {
       hifzRepeatCountNotifier.value = hifzRepeatCount;
     }
+
+    if (schemaVersion < _appPreferencesSchemaVersion) {
+      final changed = _applyLegacyBanglaMigration(json);
+      if (changed) {
+        await saveAppPreferences();
+      }
+    }
   } catch (_) {
     // Ignore corrupted local preferences and keep defaults.
   }
@@ -308,6 +352,7 @@ Future<void> loadAppPreferences() async {
 
 Future<void> saveAppPreferences() async {
   final payload = jsonEncode({
+    'schema_version': _appPreferencesSchemaVersion,
     'language': appLanguageNotifier.value.name,
     'darkTheme': darkThemeEnabledNotifier.value,
     'fontSize': appFontSizeNotifier.value.name,

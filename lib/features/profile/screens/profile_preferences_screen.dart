@@ -22,6 +22,27 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
   static const _mutedText = Color(0xFF8A96A3);
   static const _titleText = Color(0xFF1F252D);
 
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+
+  String _text(String english, String bangla) => _isBangla ? bangla : english;
+
+  @override
+  void initState() {
+    super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   Future<void> _openEditProfile() async {
     await Navigator.of(context).pushNamed(RouteNames.editProfile);
     if (!mounted) return;
@@ -33,16 +54,21 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout now?'),
+          title: Text(_text('Logout', 'লগআউট')),
+          content: Text(
+            _text(
+              'Are you sure you want to logout now?',
+              'আপনি কি এখন লগআউট করতে চান?',
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(_text('Cancel', 'বাতিল')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Logout'),
+              child: Text(_text('Logout', 'লগআউট')),
             ),
           ],
         );
@@ -57,6 +83,25 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
   Future<void> _setFontSize(AppFontSize value) async {
     appFontSizeNotifier.value = value;
     await saveAppPreferences();
+  }
+
+  String _fontSizeLabel(AppFontSize size) {
+    if (!_isBangla) return appFontSizeLabel(size);
+    switch (size) {
+      case AppFontSize.small:
+        return 'ছোট';
+      case AppFontSize.medium:
+        return 'মাঝারি';
+      case AppFontSize.large:
+        return 'বড়';
+    }
+  }
+
+  String _translationLanguageLabel(String value) {
+    if (!_isBangla) return value;
+    if (value == 'Bangla') return 'বাংলা';
+    if (value == 'English') return 'ইংরেজি';
+    return value;
   }
 
   Future<void> _setDarkTheme(bool value) async {
@@ -79,8 +124,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         await saveAppPreferences();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enable phone location service first'),
+          SnackBar(
+            content: Text(
+              _text(
+                'Please enable phone location service first',
+                'প্রথমে ফোনের লোকেশন সার্ভিস চালু করুন',
+              ),
+            ),
           ),
         );
         return;
@@ -96,9 +146,12 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         await saveAppPreferences();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Location permission is permanently denied. Enable it in app settings.',
+              _text(
+                'Location permission is permanently denied. Enable it in app settings.',
+                'লোকেশন পারমিশন স্থায়ীভাবে বন্ধ। অ্যাপ সেটিংস থেকে চালু করুন।',
+              ),
             ),
           ),
         );
@@ -109,8 +162,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         await saveAppPreferences();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location permission is needed for accurate timings'),
+          SnackBar(
+            content: Text(
+              _text(
+                'Location permission is needed for accurate timings',
+                'সঠিক সময়ের জন্য লোকেশন পারমিশন প্রয়োজন',
+              ),
+            ),
           ),
         );
         return;
@@ -119,16 +177,25 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       useDeviceLocationNotifier.value = value;
       await saveAppPreferences();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Device location enabled')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _text('Device location enabled', 'ডিভাইস লোকেশন চালু হয়েছে'),
+          ),
+        ),
+      );
     } catch (e) {
       useDeviceLocationNotifier.value = false;
       await saveAppPreferences();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to enable location on this device right now'),
+        SnackBar(
+          content: Text(
+            _text(
+              'Unable to enable location on this device right now',
+              'এই ডিভাইসে এখন লোকেশন চালু করা যাচ্ছে না',
+            ),
+          ),
         ),
       );
       debugPrint('Use device location toggle failed: $e');
@@ -176,7 +243,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
   Future<void> _selectHifzRepeatCount() async {
     final current = '${hifzRepeatCountNotifier.value}x';
     final selected = await _pickOption(
-      title: 'Hifz Repeat Count',
+      title: _text('Hifz Repeat Count', 'হিফজ রিপিট সংখ্যা'),
       options: const ['1x', '3x', '5x', '10x'],
       current: current,
     );
@@ -234,17 +301,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
           child: ListView(
             shrinkWrap: true,
             children: [
-              const ListTile(
+              ListTile(
                 title: Text(
-                  'Font Size',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                  _text('Font Size', 'ফন্ট সাইজ'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
               const Divider(height: 1),
               ...AppFontSize.values.map((size) {
                 final selected = size == current;
                 return ListTile(
-                  title: Text(appFontSizeLabel(size)),
+                  title: Text(_fontSizeLabel(size)),
                   trailing: selected
                       ? const Icon(Icons.check, color: _teal)
                       : null,
@@ -384,10 +451,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
                     child: Text(
-                      'Profile',
+                      _text('Profile', 'প্রোফাইল'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -474,7 +541,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       ],
                     ),
                   ),
-                  _sectionLabel('General'),
+                  _sectionLabel(_text('General', 'সাধারণ')),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -487,8 +554,8 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, size, _) {
                             return _rowTile(
                               icon: Icons.text_fields_rounded,
-                              title: 'Font Size',
-                              subtitle: appFontSizeLabel(size),
+                              title: _text('Font Size', 'ফন্ট সাইজ'),
+                              subtitle: _fontSizeLabel(size),
                               onTap: _selectFontSize,
                             );
                           },
@@ -499,8 +566,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, _) {
                             return _switchRow(
                               icon: Icons.dark_mode_outlined,
-                              title: 'Dark Theme',
-                              subtitle: 'Switch to dark color scheme',
+                              title: _text('Dark Theme', 'ডার্ক থিম'),
+                              subtitle: _text(
+                                'Switch to dark color scheme',
+                                'ডার্ক কালার স্কিম চালু করুন',
+                              ),
                               value: enabled,
                               onChanged: _setDarkTheme,
                             );
@@ -512,9 +582,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, _) {
                             return _switchRow(
                               icon: Icons.my_location_rounded,
-                              title: 'Use Device Location',
-                              subtitle:
-                                  'Accurate prayer/sehri/iftar by your area',
+                              title: _text(
+                                'Use Device Location',
+                                'ডিভাইস লোকেশন ব্যবহার',
+                              ),
+                              subtitle: _text(
+                                'Accurate prayer/sehri/iftar by your area',
+                                'আপনার এলাকার সঠিক সালাত/সেহরি/ইফতার সময়',
+                              ),
                               value: enabled,
                               onChanged: _setUseDeviceLocation,
                             );
@@ -523,7 +598,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       ],
                     ),
                   ),
-                  _sectionLabel('Prayer Setting'),
+                  _sectionLabel(_text('Prayer Setting', 'প্রার্থনা সেটিং')),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -536,9 +611,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, _) {
                             return _switchRow(
                               icon: Icons.short_text_rounded,
-                              title: 'Show Latin Letters',
-                              subtitle:
-                                  'Latin lyrics while navigating Al Quran',
+                              title: _text(
+                                'Show Latin Letters',
+                                'লাতিন লেখা দেখান',
+                              ),
+                              subtitle: _text(
+                                'Latin lyrics while navigating Al Quran',
+                                'কুরআন পড়ার সময় লাতিন উচ্চারণ দেখান',
+                              ),
                               value: enabled,
                               onChanged: _setShowLatinLetters,
                             );
@@ -551,21 +631,35 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, language, _) {
                             return _switchRow(
                               icon: Icons.translate_rounded,
-                              title: 'Show Translation',
-                              subtitle: language,
+                              title: _text('Show Translation', 'অনুবাদ দেখান'),
+                              subtitle: _translationLanguageLabel(language),
                               value: enabled,
                               onChanged: (value) async {
                                 await _setShowTranslation(value);
                                 if (!value) return;
+                                final currentOption =
+                                    _isBangla && language == 'Bangla'
+                                    ? 'বাংলা'
+                                    : language;
                                 final selected = await _pickOption(
-                                  title: 'Translation Language',
-                                  options: const ['English', 'Bangla'],
-                                  current: language,
+                                  title: _text(
+                                    'Translation Language',
+                                    'অনুবাদের ভাষা',
+                                  ),
+                                  options: _isBangla
+                                      ? const ['বাংলা', 'English']
+                                      : const ['English', 'Bangla'],
+                                  current: currentOption,
                                 );
-                                if (selected == null || selected == language) {
+                                if (selected == null) {
                                   return;
                                 }
-                                translationLanguageNotifier.value = selected;
+                                final normalizedSelected = selected == 'বাংলা'
+                                    ? 'Bangla'
+                                    : selected;
+                                if (normalizedSelected == language) return;
+                                translationLanguageNotifier.value =
+                                    normalizedSelected;
                                 await saveAppPreferences();
                               },
                             );
@@ -577,8 +671,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, _) {
                             return _switchRow(
                               icon: Icons.menu_book_outlined,
-                              title: 'Show Tajweed',
-                              subtitle: 'Click to view the tajweed detail',
+                              title: _text('Show Tajweed', 'তাজবিদ দেখান'),
+                              subtitle: _text(
+                                'Click to view the tajweed detail',
+                                'তাজবিদের বিস্তারিত দেখতে চালু করুন',
+                              ),
                               value: enabled,
                               onChanged: _setShowTajweed,
                             );
@@ -590,11 +687,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, translator, _) {
                             return _rowTile(
                               icon: Icons.person_outline,
-                              title: 'Translator',
+                              title: _text('Translator', 'অনুবাদক'),
                               subtitle: translator,
                               onTap: () async {
                                 final selected = await _pickOption(
-                                  title: 'Translator',
+                                  title: _text('Translator', 'অনুবাদক'),
                                   options: const [
                                     'Dr. Mustafa Khattab',
                                     'Muhiuddin Khan',
@@ -618,11 +715,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, reciter, _) {
                             return _rowTile(
                               icon: Icons.mic_none_rounded,
-                              title: 'Reciters',
+                              title: _text('Reciters', 'কারী'),
                               subtitle: reciter,
                               onTap: () async {
                                 final selected = await _pickOption(
-                                  title: 'Reciter',
+                                  title: _text('Reciter', 'কারী'),
                                   options: const [
                                     'Mishary Rashid Alafasy',
                                     'Saad Al-Ghamdi',
@@ -646,14 +743,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, voice, _) {
                             return _switchRow(
                               icon: Icons.notifications_active_outlined,
-                              title: 'Adzan Notification',
+                              title: _text(
+                                'Adzan Notification',
+                                'আযান নোটিফিকেশন',
+                              ),
                               subtitle: voice,
                               value: enabled,
                               onChanged: (value) async {
                                 await _setAdzanNotification(value);
                                 if (!value) return;
                                 final selected = await _pickOption(
-                                  title: 'Adzan Voice',
+                                  title: _text('Adzan Voice', 'আযানের ভয়েস'),
                                   options: const [
                                     'Hanan Attaki',
                                     'Mishary Alafasy',
@@ -677,14 +777,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           builder: (context, enabled, voice, _) {
                             return _switchRow(
                               icon: Icons.alarm_on_outlined,
-                              title: 'Imsak Notification',
+                              title: _text(
+                                'Imsak Notification',
+                                'ইমসাক নোটিফিকেশন',
+                              ),
                               subtitle: voice,
                               value: enabled,
                               onChanged: (value) async {
                                 await _setImsakNotification(value);
                                 if (!value) return;
                                 final selected = await _pickOption(
-                                  title: 'Imsak Tone',
+                                  title: _text('Imsak Tone', 'ইমসাক টোন'),
                                   options: const ['Default', 'Gentle', 'Beep'],
                                   current: voice,
                                 );
@@ -700,7 +803,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       ],
                     ),
                   ),
-                  _sectionLabel('Quran Learning'),
+                  _sectionLabel(_text('Quran Learning', 'কুরআন লার্নিং')),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -713,8 +816,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           children: [
                             _switchRow(
                               icon: Icons.self_improvement_outlined,
-                              title: 'Enable Hifz Mode',
-                              subtitle: 'Use repeat mode for ayah memorization',
+                              title: _text(
+                                'Enable Hifz Mode',
+                                'হিফজ মোড চালু করুন',
+                              ),
+                              subtitle: _text(
+                                'Use repeat mode for ayah memorization',
+                                'আয়াত মুখস্থের জন্য রিপিট মোড ব্যবহার করুন',
+                              ),
                               value: enabled,
                               onChanged: _setHifzMode,
                             ),
@@ -725,8 +834,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 builder: (context, repeatCount, _) {
                                   return _rowTile(
                                     icon: Icons.repeat_rounded,
-                                    title: 'Hifz Repeat Count',
-                                    subtitle: '${repeatCount}x per ayah',
+                                    title: _text(
+                                      'Hifz Repeat Count',
+                                      'হিফজ রিপিট সংখ্যা',
+                                    ),
+                                    subtitle: _text(
+                                      '${repeatCount}x per ayah',
+                                      'প্রতি আয়াতে ${repeatCount}x',
+                                    ),
                                     onTap: _selectHifzRepeatCount,
                                   );
                                 },
@@ -737,9 +852,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 builder: (context, hideBangla, _) {
                                   return _switchRow(
                                     icon: Icons.visibility_off_outlined,
-                                    title: 'Hide Bangla in Hifz',
-                                    subtitle:
-                                        'Show Arabic only while practicing',
+                                    title: _text(
+                                      'Hide Bangla in Hifz',
+                                      'হিফজে বাংলা লুকান',
+                                    ),
+                                    subtitle: _text(
+                                      'Show Arabic only while practicing',
+                                      'প্র্যাকটিসে শুধু আরবি দেখান',
+                                    ),
                                     value: hideBangla,
                                     onChanged: _setHifzHideBanglaMeaning,
                                   );
@@ -768,8 +888,8 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ),
                       ),
                       icon: const Icon(Icons.logout_rounded, size: 14),
-                      label: const Text(
-                        'Log Out',
+                      label: Text(
+                        _text('Log Out', 'লগ আউট'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
