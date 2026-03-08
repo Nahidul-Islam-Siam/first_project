@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/asmaul_husna/models/asma_name.dart';
 import 'package:first_project/features/asmaul_husna/services/asma_service.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
 
 class AsmaScreen extends StatefulWidget {
@@ -86,39 +87,42 @@ class _AsmaScreenState extends State<AsmaScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredNames = _filteredNames;
+    final glass = NoorifyGlassTheme(context);
 
     return Scaffold(
-      backgroundColor: BrandColors.screenBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _AsmaHeader(
-              searchController: _searchController,
-              total: _names.length,
-              shown: filteredNames.length,
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? _AsmaErrorView(error: _error!, onRetry: _loadAsmaNames)
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-                      itemCount: filteredNames.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final item = filteredNames[index];
-                        final hasAudio = (item.audio ?? '').trim().isNotEmpty;
-                        return _AsmaNameCard(
-                          item: item,
-                          hasAudio: hasAudio,
-                          onPlay: () => _onTapPlay(item),
-                        );
-                      },
-                    ),
-            ),
-            bottomNav(context, 1),
-          ],
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _AsmaHeader(
+                searchController: _searchController,
+                total: _names.length,
+                shown: filteredNames.length,
+              ),
+              Expanded(
+                child: _isLoading
+                    ? Center(child: CircularProgressIndicator(color: glass.accent))
+                    : _error != null
+                    ? _AsmaErrorView(error: _error!, onRetry: _loadAsmaNames)
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                        itemCount: filteredNames.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final item = filteredNames[index];
+                          final hasAudio = (item.audio ?? '').trim().isNotEmpty;
+                          return _AsmaNameCard(
+                            item: item,
+                            hasAudio: hasAudio,
+                            onPlay: () => _onTapPlay(item),
+                          );
+                        },
+                      ),
+              ),
+              bottomNav(context, 1),
+            ],
+          ),
         ),
       ),
     );
@@ -138,87 +142,85 @@ class _AsmaHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            BrandColors.primaryDark,
-            BrandColors.primary,
-            BrandColors.primaryLight,
+    final glass = NoorifyGlassTheme(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+      child: NoorifyGlassCard(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        radius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Asma Ul Husna',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: glass.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: glass.isDark
+                        ? const Color(0x3327D8B2)
+                        : const Color(0x1F119C88),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: glass.glassBorder),
+                  ),
+                  child: Text(
+                    '$shown/$total',
+                    style: TextStyle(
+                      color: glass.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '99 Beautiful Names of Allah',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: glass.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: searchController,
+              style: TextStyle(color: glass.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Search name, meaning, or number',
+                hintStyle: TextStyle(color: glass.textMuted),
+                prefixIcon: Icon(Icons.search_rounded, color: glass.textMuted),
+                filled: true,
+                fillColor: glass.isDark
+                    ? const Color(0x4412272E)
+                    : const Color(0xECFFFFFF),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: glass.glassBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: glass.glassBorder),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+              ),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Asma Ul Husna',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: Text(
-                  '$shown/$total',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '99 Beautiful Names of Allah',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xE8FFFFFF),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              hintText: 'Search name, meaning, or number',
-              prefixIcon: const Icon(Icons.search_rounded),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 10,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -232,6 +234,7 @@ class _AsmaErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -241,10 +244,18 @@ class _AsmaErrorView extends StatelessWidget {
             Text(
               error,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFB3261E)),
+              style: TextStyle(color: glass.textSecondary),
             ),
             const SizedBox(height: 10),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: glass.accent,
+                foregroundColor:
+                    glass.isDark ? const Color(0xFF052620) : Colors.white,
+              ),
+              onPressed: onRetry,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
@@ -265,20 +276,10 @@ class _AsmaNameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final glass = NoorifyGlassTheme(context);
+    return NoorifyGlassCard(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BrandColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
+      radius: BorderRadius.circular(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -289,13 +290,15 @@ class _AsmaNameCard extends StatelessWidget {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: BrandColors.tintBackground,
+                  color: glass.isDark
+                      ? const Color(0x3327D8B2)
+                      : const Color(0x22119C88),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   item.id.toString(),
-                  style: const TextStyle(
-                    color: BrandColors.primaryDark,
+                  style: TextStyle(
+                    color: glass.accent,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -304,6 +307,12 @@ class _AsmaNameCard extends StatelessWidget {
               IconButton.filledTonal(
                 tooltip: hasAudio ? 'Play audio' : 'No audio yet',
                 onPressed: hasAudio ? onPlay : null,
+                style: IconButton.styleFrom(
+                  backgroundColor: glass.isDark
+                      ? const Color(0x3316383E)
+                      : const Color(0x22119C88),
+                  foregroundColor: glass.accent,
+                ),
                 icon: const Icon(Icons.play_arrow_rounded),
               ),
             ],
@@ -316,31 +325,31 @@ class _AsmaNameCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
-                color: BrandColors.textPrimary,
+                color: Colors.white,
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             item.transliteration,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: BrandColors.primaryDark,
+              color: glass.accentSoft,
             ),
           ),
           const SizedBox(height: 3),
           Text(
             item.englishMeaning,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: BrandColors.textSecondary,
+              color: glass.textSecondary,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             '${item.banglaName} - ${item.banglaMeaning}',
-            style: const TextStyle(fontSize: 13, color: BrandColors.textMuted),
+            style: TextStyle(fontSize: 13, color: glass.textMuted),
           ),
         ],
       ),

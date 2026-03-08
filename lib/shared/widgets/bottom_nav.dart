@@ -4,8 +4,11 @@ import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/core/constants/route_names.dart';
 
 Widget bottomNav(BuildContext context, int active) {
-  const activeColor = BrandColors.primary;
-  const inactiveColor = Color(0xFF7E93A0);
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final activeColor = isDark ? const Color(0xFF27D8B2) : BrandColors.primary;
+  final inactiveColor = isDark
+      ? const Color(0xFF8FA7B3)
+      : const Color(0xFF7E93A0);
 
   final items = <({String label, IconData icon, String routeName})>[
     (label: 'Home', icon: Icons.home_filled, routeName: RouteNames.activity),
@@ -38,7 +41,16 @@ Widget bottomNav(BuildContext context, int active) {
   }
 
   return Container(
-    color: Colors.white,
+    decoration: BoxDecoration(
+      color: isDark ? const Color(0xE9112028) : const Color(0xEEFFFFFF),
+      border: Border(
+        top: BorderSide(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFD4E6E1),
+        ),
+      ),
+    ),
     padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,

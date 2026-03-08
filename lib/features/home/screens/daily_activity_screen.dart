@@ -1,7 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
@@ -17,9 +20,7 @@ import 'package:first_project/features/quran/models/quran_models.dart';
 import 'package:first_project/features/quran/services/quran_api_service.dart';
 import 'package:first_project/features/quran/services/quran_last_read_service.dart';
 import 'package:first_project/features/quran/screens/surah_detail_screen.dart';
-import 'package:first_project/shared/widgets/bottom_nav.dart';
 import 'package:first_project/features/home/models/home_activity_models.dart';
-import 'package:first_project/features/home/widgets/home_activity_widgets.dart';
 
 part '../controllers/daily_activity_controller_mixin.dart';
 part '../widgets/daily_activity_view_mixin.dart';

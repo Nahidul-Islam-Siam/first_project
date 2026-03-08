@@ -132,6 +132,12 @@ Completed (out of order by priority request):
   - Implemented Figma-style profile settings layout
   - Local photo picking and storage
   - Local theme/font/preference persistence
+- Bangla-first localization baseline (local)
+  - Default app language and translation language set to Bangla
+  - Legacy preference migration added (schema versioned)
+  - Prayer naming normalized (`Zuhr`, `Asr`) for consistency
+  - Profile, Hadith, and Qibla key UI labels localized in Bangla
+  - Added Bangla content review checklist doc for future editorial pass
 - Quran bookmarks and notes (local)
   - Ayah bookmark add/update/remove in Surah detail
   - Local note per bookmarked ayah

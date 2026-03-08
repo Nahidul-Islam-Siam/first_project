@@ -1,10 +1,11 @@
 part of '../screens/daily_activity_screen.dart';
 
 mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
+  static const _kaabaLat = 21.422487;
+  static const _kaabaLng = 39.826206;
   static const _baitulMukarramLat = 23.7286;
   static const _baitulMukarramLng = 90.4106;
   static const _baitulMukarramLabel = 'Baitul Mukarram, Dhaka';
-  final double _headerHeight = 330.0;
   static const _apiMethod = 1; // University of Islamic Sciences, Karachi
   static const _apiSchool = 1; // Hanafi
 
@@ -33,8 +34,11 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     'Isha': '--:--',
   };
 
-  int _completedDaily = 3;
+  final int _completedDaily = 3;
   final int _dailyGoal = 6;
+  StreamSubscription<CompassEvent>? _homeCompassSub;
+  double? _homeHeading;
+  double? _homeQiblaBearing;
   final List<String> _prayerOrder = const [
     'Fajr',
     'Zuhr',
@@ -74,6 +78,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     sehriAlertEnabledNotifier.addListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.addListener(_onIftarAlertToggleChanged);
     alertToneNotifier.addListener(_onAlertToneChanged);
+    _initializeMiniCompass();
     _loadPrayerData();
     _loadLastReadCard();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -96,6 +101,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     sehriAlertEnabledNotifier.removeListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.removeListener(_onIftarAlertToggleChanged);
     alertToneNotifier.removeListener(_onAlertToneChanged);
+    _homeCompassSub?.cancel();
     _clockTimer.cancel();
     _prayerPageController.dispose();
   }
@@ -103,6 +109,59 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   void _safeSetState(VoidCallback fn) {
     if (!mounted) return;
     setState(fn);
+  }
+
+  void _initializeMiniCompass() {
+    _homeCompassSub?.cancel();
+    final stream = FlutterCompass.events;
+    if (stream == null) {
+      _homeHeading = null;
+      return;
+    }
+
+    _homeCompassSub = stream.listen(
+      (event) {
+        final heading = event.heading;
+        if (heading == null || heading.isNaN) return;
+        _safeSetState(() {
+          _homeHeading = _normalizeDegrees(heading);
+        });
+      },
+      onError: (_) {
+        _safeSetState(() => _homeHeading = null);
+      },
+    );
+  }
+
+  void _updateHomeQiblaBearing(double lat, double lng) {
+    _homeQiblaBearing = _calculateQiblaBearingBasic(lat: lat, lng: lng);
+  }
+
+  double _calculateQiblaBearingBasic({
+    required double lat,
+    required double lng,
+  }) {
+    final latRad = lat * math.pi / 180;
+    final lngRad = lng * math.pi / 180;
+    final kaabaLatRad = _kaabaLat * math.pi / 180;
+    final kaabaLngRad = _kaabaLng * math.pi / 180;
+    final dLng = kaabaLngRad - lngRad;
+
+    final y = math.sin(dLng);
+    final x =
+        math.cos(latRad) * math.tan(kaabaLatRad) -
+        math.sin(latRad) * math.cos(dLng);
+    final bearing = math.atan2(y, x) * 180 / math.pi;
+    return _normalizeDegrees(bearing);
+  }
+
+  double _normalizeDegrees(double degrees) {
+    final normalized = degrees % 360;
+    return normalized < 0 ? normalized + 360 : normalized;
+  }
+
+  double _signedQiblaDelta(double target, double current) {
+    return ((target - current + 540) % 360) - 180;
   }
 
   void _onLanguageChanged() {
@@ -725,6 +784,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       }
       _latitude = position.latitude;
       _longitude = position.longitude;
+      _updateHomeQiblaBearing(position.latitude, position.longitude);
       await _resolveLocationLabel(position.latitude, position.longitude);
     } catch (e) {
       _setBaitulMukarramLocation();
@@ -746,6 +806,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   void _setBaitulMukarramLocation() {
     _latitude = _baitulMukarramLat;
     _longitude = _baitulMukarramLng;
+    _updateHomeQiblaBearing(_baitulMukarramLat, _baitulMukarramLng);
     _safeSetState(() => _locationLabel = _baitulMukarramLabel);
   }
 

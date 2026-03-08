@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -76,6 +77,65 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   bool get _hifzModeEnabled => hifzModeEnabledNotifier.value;
   bool get _hifzHideBanglaMeaning => hifzHideBanglaMeaningNotifier.value;
   int get _hifzRepeatCount => hifzRepeatCountNotifier.value;
+  bool get _isDarkTheme => Theme.of(context).brightness == Brightness.dark;
+
+  Color get _bgTop =>
+      _isDarkTheme ? const Color(0xFF071A1F) : const Color(0xFFF4FBFA);
+  Color get _bgMid =>
+      _isDarkTheme ? const Color(0xFF0A2229) : const Color(0xFFEAF6F3);
+  Color get _bgBottom =>
+      _isDarkTheme ? const Color(0xFF08161C) : const Color(0xFFF3FBFA);
+
+  Color get _glassStart =>
+      _isDarkTheme ? const Color(0xCC14252B) : const Color(0xF2FFFFFF);
+  Color get _glassEnd =>
+      _isDarkTheme ? const Color(0xB0122027) : const Color(0xDBEDF7F5);
+  Color get _glassBorder =>
+      _isDarkTheme ? const Color(0x44A7F5DB) : const Color(0xFFD3E8E2);
+  Color get _glassShadow =>
+      _isDarkTheme ? const Color(0x66000000) : const Color(0x1A154D41);
+
+  Color get _screenTextPrimary =>
+      _isDarkTheme ? const Color(0xFFEAF8F3) : const Color(0xFF153430);
+  Color get _screenTextSecondary =>
+      _isDarkTheme ? const Color(0xFF98B9B0) : const Color(0xFF4D756D);
+  Color get _screenTextMuted =>
+      _isDarkTheme ? const Color(0xFF7FA097) : const Color(0xFF64887F);
+  Color get _accent =>
+      _isDarkTheme ? const Color(0xFF27D8B2) : const Color(0xFF119C88);
+
+  Widget _buildGlassPanel({
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(14),
+    BorderRadius borderRadius = const BorderRadius.all(Radius.circular(18)),
+  }) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            gradient: LinearGradient(
+              colors: [_glassStart, _glassEnd],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(color: _glassBorder),
+            boxShadow: [
+              BoxShadow(
+                color: _glassShadow,
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 
   void _resetSingleAyahPlaybackState() {
     _singleAyahMode = false;
@@ -628,11 +688,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     required String arabic,
     required int highlightedWordIndex,
   }) {
-    const baseStyle = TextStyle(
+    final baseStyle = TextStyle(
       fontSize: 24,
       height: 1.7,
       fontWeight: FontWeight.w600,
-      color: BrandColors.textPrimary,
+      color: _screenTextPrimary,
     );
 
     final cleaned = arabic.trim();
@@ -670,12 +730,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         TextSpan(
           text: i == words.length - 1 ? word : '$word ',
           style: baseStyle.copyWith(
-            color: isHighlighted
-                ? BrandColors.primaryDark
-                : BrandColors.textPrimary,
+            color: isHighlighted ? _accent : _screenTextPrimary,
             fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w600,
             backgroundColor: isHighlighted
-                ? const Color(0x553AD1FF)
+                ? (_isDarkTheme
+                      ? const Color(0x5527D8B2)
+                      : const Color(0x3327D8B2))
                 : Colors.transparent,
           ),
         ),
@@ -1074,210 +1134,227 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: BrandColors.border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${detail.surahName} • ${_toBanglaDigits(detail.surahNo.toString())}',
-                    style: const TextStyle(
-                      color: BrandColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+        margin: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        child: _buildGlassPanel(
+          borderRadius: const BorderRadius.all(Radius.circular(28)),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${detail.surahName} - ${_toBanglaDigits(detail.surahNo.toString())}',
+                      style: TextStyle(
+                        color: _screenTextPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Hide player',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => setState(() => _showBottomPlayer = false),
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    color: BrandColors.textMuted,
+                  IconButton(
+                    tooltip: 'Hide player',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => setState(() => _showBottomPlayer = false),
+                    icon: Icon(Icons.close_rounded, color: _screenTextMuted),
+                  ),
+                ],
+              ),
+              if (_usingCachedContent) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Offline saved content',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _screenTextMuted,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
-            ),
-            if (_usingCachedContent) ...[
+              const SizedBox(height: 6),
+              if (hasReciters)
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Reciter',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _glassBorder),
+                    ),
+                    labelStyle: TextStyle(
+                      color: _screenTextMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      isExpanded: true,
+                      dropdownColor: _isDarkTheme
+                          ? const Color(0xFF10242B)
+                          : Colors.white,
+                      style: TextStyle(
+                        color: _screenTextPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      value: _selectedReciter?.id,
+                      items: detail.audioByReciter
+                          .map(
+                            (reciter) => DropdownMenuItem<int>(
+                              value: reciter.id,
+                              child: Text(
+                                reciter.reciter,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: _onReciterChanged,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  'No audio source found for this Surah.',
+                  style: TextStyle(
+                    color: _isDarkTheme
+                        ? const Color(0xFFDEA1A1)
+                        : const Color(0xFF8F4343),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              const SizedBox(height: 8),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3,
+                  activeTrackColor: _accent,
+                  inactiveTrackColor: _isDarkTheme
+                      ? const Color(0x334A7D72)
+                      : const Color(0xFFAED2C8),
+                  thumbColor: _accent,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                ),
+                child: Slider(
+                  value: currentMs.toDouble(),
+                  min: 0,
+                  max: maxMs.toDouble(),
+                  onChanged: durationMs > 0
+                      ? (value) =>
+                            _player.seek(Duration(milliseconds: value.round()))
+                      : null,
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    _formatDuration(_position),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _screenTextSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _formatDuration(_duration),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _screenTextSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 2),
-              const Text(
-                'Offline saved content',
+              Text(
+                hasExactTiming
+                    ? 'Exact ayah timing sync enabled'
+                    : 'Approximate sync for this reciter',
                 style: TextStyle(
                   fontSize: 11,
-                  color: BrandColors.textMuted,
-                  fontWeight: FontWeight.w600,
+                  color: _screenTextMuted,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ],
-            const SizedBox(height: 6),
-            if (hasReciters)
-              InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'রিসাইটার',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    value: _selectedReciter?.id,
-                    items: detail.audioByReciter
-                        .map(
-                          (reciter) => DropdownMenuItem<int>(
-                            value: reciter.id,
-                            child: Text(
-                              reciter.reciter,
-                              overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: hasReciters && !_isPreparingAudio
+                          ? _togglePlayPause
+                          : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: _isDarkTheme
+                            ? const Color(0xFF052620)
+                            : Colors.white,
+                      ),
+                      icon: _isPreparingAudio
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              _isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
                             ),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _onReciterChanged,
+                      label: Text(_isPlaying ? 'Pause' : 'Play'),
+                    ),
                   ),
-                ),
-              )
-            else
-              const Text(
-                'এই সূরার জন্য অডিও সোর্স পাওয়া যায়নি।',
-                style: TextStyle(
-                  color: Color(0xFF7A4444),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            const SizedBox(height: 8),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              ),
-              child: Slider(
-                value: currentMs.toDouble(),
-                min: 0,
-                max: maxMs.toDouble(),
-                onChanged: durationMs > 0
-                    ? (value) =>
-                          _player.seek(Duration(milliseconds: value.round()))
-                    : null,
-              ),
-            ),
-            Row(
-              children: [
-                Text(
-                  _formatDuration(_position),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: BrandColors.textSecondary,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: _isPlaying || _position > Duration.zero
+                        ? _stopAudio
+                        : null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _screenTextPrimary,
+                      side: BorderSide(color: _glassBorder),
+                    ),
+                    icon: const Icon(Icons.stop_rounded),
+                    label: const Text('Stop'),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatDuration(_duration),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: BrandColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              hasExactTiming
-                  ? 'Exact ayah timing sync enabled'
-                  : 'Approximate sync (timing not available for this reciter)',
-              style: const TextStyle(
-                fontSize: 11,
-                color: BrandColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: hasReciters && !_isPreparingAudio
-                        ? _togglePlayPause
+                  const SizedBox(width: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: hasReciters && !_isDownloadingAudio
+                        ? _downloadSelectedAudio
                         : null,
                     style: FilledButton.styleFrom(
-                      backgroundColor: BrandColors.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: _isDarkTheme
+                          ? const Color(0xFF16353C)
+                          : const Color(0xFFDCEEE9),
+                      foregroundColor: _screenTextPrimary,
                     ),
-                    icon: _isPreparingAudio
+                    icon: _isDownloadingAudio
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Icon(
-                            _isPlaying
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
+                            isCached
+                                ? Icons.download_done_rounded
+                                : Icons.download_rounded,
                           ),
-                    label: Text(_isPlaying ? 'Pause' : 'Play'),
+                    label: Text(isCached ? 'Saved' : 'Offline'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _isPlaying || _position > Duration.zero
-                      ? _stopAudio
-                      : null,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: BrandColors.primaryDark,
-                    side: const BorderSide(color: BrandColors.border),
-                  ),
-                  icon: const Icon(Icons.stop_rounded),
-                  label: const Text('Stop'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton.tonalIcon(
-                  onPressed: hasReciters && !_isDownloadingAudio
-                      ? _downloadSelectedAudio
-                      : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: BrandColors.tintBackgroundStrong,
-                    foregroundColor: BrandColors.primaryDark,
-                  ),
-                  icon: _isDownloadingAudio
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          isCached
-                              ? Icons.download_done_rounded
-                              : Icons.download_rounded,
-                        ),
-                  label: Text(isCached ? 'Saved' : 'Offline'),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1299,27 +1376,31 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final hasBookmark = bookmark != null;
     final bookmarkNote = bookmark?.note.trim() ?? '';
     final hideBanglaInHifz = _hifzModeEnabled && _hifzHideBanglaMeaning;
-    final ayahSubtitle = hideBanglaInHifz
-        ? (highlighted ? 'Arabic only - Hifz active' : 'Arabic only - Hifz')
-        : (highlighted ? 'Arabic + Bangla - Playing' : 'Arabic + Bangla');
+    final ayahContainerBorder = highlighted
+        ? const Color(0x8845E4C2)
+        : (_isDarkTheme ? const Color(0x33498A7A) : const Color(0xFFCCE3DC));
+    final ayahContainerBg = highlighted
+        ? (_isDarkTheme ? const Color(0xB01B2D33) : const Color(0xF1F4FFFB))
+        : (_isDarkTheme ? const Color(0xA014242B) : const Color(0xEFFFFFFF));
+    final ayahNumberBg = highlighted
+        ? (_isDarkTheme ? const Color(0xFF27D8B2) : const Color(0xFF15A88F))
+        : (_isDarkTheme ? const Color(0x4027D8B2) : const Color(0x3315A88F));
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           key: itemKey,
           duration: const Duration(milliseconds: 260),
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           decoration: BoxDecoration(
-            color: highlighted ? const Color(0xFFEAF7FB) : Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            color: ayahContainerBg,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: highlighted
-                  ? BrandColors.primaryLight
-                  : BrandColors.border,
-              width: highlighted ? 1.5 : 1,
+              color: ayahContainerBorder,
+              width: highlighted ? 1.4 : 1,
             ),
           ),
           child: Column(
@@ -1328,32 +1409,33 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               Row(
                 children: [
                   Container(
-                    width: 28,
-                    height: 28,
+                    width: 30,
+                    height: 30,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: highlighted
-                          ? BrandColors.tintBackgroundStrong
-                          : BrandColors.tintBackground,
+                      color: ayahNumberBg,
                       shape: BoxShape.circle,
+                      boxShadow: highlighted
+                          ? [
+                              BoxShadow(
+                                color: const Color(0x6627D8B2),
+                                blurRadius: 14,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Text(
                       _toBanglaDigits((index + 1).toString()),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: BrandColors.primaryDark,
+                        fontSize: 13,
+                        color: highlighted
+                            ? (_isDarkTheme
+                                  ? const Color(0xFF042A22)
+                                  : Colors.white)
+                            : _accent,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    ayahSubtitle,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: highlighted
-                          ? BrandColors.primaryDark
-                          : BrandColors.textSecondary,
-                      fontSize: 12,
                     ),
                   ),
                   const Spacer(),
@@ -1368,9 +1450,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           ? Icons.bookmark_rounded
                           : Icons.bookmark_border_rounded,
                       size: 22,
-                      color: hasBookmark
-                          ? BrandColors.primaryDark
-                          : BrandColors.textMuted,
+                      color: hasBookmark ? _accent : _screenTextMuted,
                     ),
                   ),
                   IconButton(
@@ -1384,13 +1464,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           ? Icons.pause_circle_filled_rounded
                           : Icons.play_circle_fill_rounded,
                       size: 24,
-                      color: BrandColors.primaryDark,
+                      color: _accent,
                     ),
                   ),
                 ],
               ),
               if (arabic.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerRight,
                   child: _buildArabicAyahText(
@@ -1402,22 +1482,22 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 ),
               ],
               if (bengali.isNotEmpty && !hideBanglaInHifz) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   bengali,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: 14,
                     height: 1.6,
-                    color: BrandColors.textPrimary,
+                    color: _screenTextPrimary,
                   ),
                 ),
               ],
-              const SizedBox(height: 8),
-              const Text(
+              const SizedBox(height: 7),
+              Text(
                 'Tap to view Bangla tafsir (auto-saved offline)',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: BrandColors.textMuted,
+                  fontSize: 11,
+                  color: _screenTextMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1430,17 +1510,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: BrandColors.tintBackground,
+                    color: _isDarkTheme
+                        ? const Color(0x3327D8B2)
+                        : const Color(0x2215A88F),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: BrandColors.border),
+                    border: Border.all(color: _glassBorder),
                   ),
                   child: Text(
                     bookmarkNote,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: BrandColors.textSecondary,
+                      color: _screenTextSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1455,6 +1537,17 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final detailForHeader = _detail;
+    final headerAyahTo = detailForHeader == null
+        ? 5
+        : math.min(
+            5,
+            math.max(
+              detailForHeader.arabicAyahs.length,
+              detailForHeader.bengaliAyahs.length,
+            ),
+          );
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -1462,15 +1555,48 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         Navigator.of(context).pop(_didDownloadAudio);
       },
       child: Scaffold(
-        backgroundColor: BrandColors.screenBackground,
+        backgroundColor: _bgBottom,
         appBar: AppBar(
-          backgroundColor: BrandColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
+          foregroundColor: _screenTextPrimary,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.of(context).pop(_didDownloadAudio),
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: _isDarkTheme
+                    ? const Color(0x3327D8B2)
+                    : const Color(0x1F119C88),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.arrow_back_rounded, color: _screenTextPrimary),
+            ),
           ),
-          title: Text(widget.chapter.surahName),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.chapter.surahName,
+                style: TextStyle(
+                  color: _screenTextPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+              Text(
+                'Ayah 1-$headerAyahTo',
+                style: TextStyle(
+                  color: _screenTextMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
           actions: [
             IconButton(
               tooltip: 'Bookmarks',
@@ -1479,7 +1605,20 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ? Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        const Icon(Icons.bookmarks_rounded),
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _isDarkTheme
+                                ? const Color(0x3327D8B2)
+                                : const Color(0x1F119C88),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.bookmarks_rounded,
+                            color: _screenTextPrimary,
+                          ),
+                        ),
                         Positioned(
                           right: -2,
                           top: -2,
@@ -1494,124 +1633,168 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                         ),
                       ],
                     )
-                  : const Icon(Icons.bookmarks_outlined),
+                  : Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _isDarkTheme
+                            ? const Color(0x3327D8B2)
+                            : const Color(0x1F119C88),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.bookmarks_outlined,
+                        color: _screenTextPrimary,
+                      ),
+                    ),
             ),
             IconButton(
               tooltip: 'Audio player',
               onPressed: _detail == null
                   ? null
                   : () => setState(() => _showBottomPlayer = true),
-              icon: const Icon(Icons.headphones_rounded),
+              icon: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _isDarkTheme
+                      ? const Color(0x3327D8B2)
+                      : const Color(0x1F119C88),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.headphones_rounded,
+                  color: _screenTextPrimary,
+                ),
+              ),
             ),
           ],
         ),
         bottomNavigationBar: _detail != null && _showBottomPlayer
             ? _buildAudioCard(_detail!)
             : null,
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_error!),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _loadSurahDetail,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: BrandColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('আবার চেষ্টা করুন'),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_bgTop, _bgMid, _bgBottom],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: -120,
+                left: -90,
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x3327D8B2), Color(0x00000000)],
                     ),
-                  ],
+                  ),
                 ),
-              )
-            : Builder(
-                builder: (context) {
-                  final detail = _detail!;
-                  final totalAyah = math.max(
-                    detail.arabicAyahs.length,
-                    detail.bengaliAyahs.length,
-                  );
-                  final activeAyahIndex = _activeAyahIndex(totalAyah);
-                  _maybeAutoScrollToAyah(activeAyahIndex);
-                  _jumpToInitialAyahIfNeeded();
-
-                  return Column(
+              ),
+              Positioned(
+                top: 220,
+                right: -110,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x2227D8B2), Color(0x00000000)],
+                    ),
+                  ),
+                ),
+              ),
+              if (_isLoading)
+                Center(child: CircularProgressIndicator(color: _accent))
+              else if (_error != null)
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _showBottomPlayer
-                                    ? 'Player is active at bottom'
-                                    : 'Audio player hidden for reading',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: BrandColors.textMuted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            TextButton.icon(
-                              onPressed: () =>
-                                  setState(() => _showBottomPlayer = true),
-                              icon: const Icon(
-                                Icons.headphones_rounded,
-                                size: 16,
-                              ),
-                              label: const Text('Play Audio'),
-                            ),
-                          ],
-                        ),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: _screenTextPrimary),
                       ),
-                      Expanded(
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                          itemCount: totalAyah,
-                          separatorBuilder: (_, index) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final arabic = index < detail.arabicAyahs.length
-                                ? detail.arabicAyahs[index]
-                                : '';
-                            final bengali = index < detail.bengaliAyahs.length
-                                ? detail.bengaliAyahs[index]
-                                : '';
-                            final bookmark = _bookmarkForAyah(index + 1);
-                            final wordHighlightIndex = _activeWordIndexForAyah(
-                              index,
-                              arabic,
-                            );
-
-                            return _buildAyahCard(
-                              itemKey: _keyForAyahItem(index),
-                              index: index,
-                              arabic: arabic,
-                              bengali: bengali,
-                              bookmark: bookmark,
-                              highlighted: index == activeAyahIndex,
-                              highlightedWordIndex: wordHighlightIndex,
-                              onTap: () => _openAyahTafsirSheet(index),
-                              onPlayAyah: () => _playSingleAyah(index),
-                              onBookmarkTap: () =>
-                                  _openAyahBookmarkSheet(index),
-                              isSingleAyahPlaying:
-                                  _singleAyahMode &&
-                                  _singleAyahIndex == index &&
-                                  _isPlaying,
-                            );
-                          },
+                      const SizedBox(height: 10),
+                      FilledButton(
+                        onPressed: _loadSurahDetail,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _accent,
+                          foregroundColor: _isDarkTheme
+                              ? const Color(0xFF052620)
+                              : Colors.white,
                         ),
+                        child: const Text('Try Again'),
                       ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                )
+              else
+                Builder(
+                  builder: (context) {
+                    final detail = _detail!;
+                    final totalAyah = math.max(
+                      detail.arabicAyahs.length,
+                      detail.bengaliAyahs.length,
+                    );
+                    final activeAyahIndex = _activeAyahIndex(totalAyah);
+                    _maybeAutoScrollToAyah(activeAyahIndex);
+                    _jumpToInitialAyahIfNeeded();
+
+                    return ListView.separated(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        10,
+                        16,
+                        _showBottomPlayer ? 20 : 24,
+                      ),
+                      itemCount: totalAyah,
+                      separatorBuilder: (_, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final arabic = index < detail.arabicAyahs.length
+                            ? detail.arabicAyahs[index]
+                            : '';
+                        final bengali = index < detail.bengaliAyahs.length
+                            ? detail.bengaliAyahs[index]
+                            : '';
+                        final bookmark = _bookmarkForAyah(index + 1);
+                        final wordHighlightIndex = _activeWordIndexForAyah(
+                          index,
+                          arabic,
+                        );
+
+                        return _buildAyahCard(
+                          itemKey: _keyForAyahItem(index),
+                          index: index,
+                          arabic: arabic,
+                          bengali: bengali,
+                          bookmark: bookmark,
+                          highlighted: index == activeAyahIndex,
+                          highlightedWordIndex: wordHighlightIndex,
+                          onTap: () => _openAyahTafsirSheet(index),
+                          onPlayAyah: () => _playSingleAyah(index),
+                          onBookmarkTap: () => _openAyahBookmarkSheet(index),
+                          isSingleAyahPlaying:
+                              _singleAyahMode &&
+                              _singleAyahIndex == index &&
+                              _isPlaying,
+                        );
+                      },
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
