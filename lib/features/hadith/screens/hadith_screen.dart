@@ -5,6 +5,7 @@ import 'package:first_project/features/hadith/models/hadith_item.dart';
 import 'package:first_project/features/hadith/services/hadith_service.dart';
 import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class HadithScreen extends StatefulWidget {
   const HadithScreen({super.key});
@@ -226,244 +227,257 @@ class _HadithScreenState extends State<HadithScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredHadiths;
+    final glass = NoorifyGlassTheme(context);
 
     return Scaffold(
-      backgroundColor: BrandColors.screenBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    BrandColors.primaryDark,
-                    BrandColors.primary,
-                    BrandColors.primaryLight,
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                child: NoorifyGlassCard(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                  radius: BorderRadius.circular(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          _text('Sahih Bukhari (50)', 'সহিহ বুখারি (৫০)'),
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _text('Sahih Bukhari (50)', '???? ?????? (??)'),
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    color: glass.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: glass.isDark
+                                  ? const Color(0x331FD5C0)
+                                  : const Color(0x1F1EA8B8),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: glass.glassBorder),
+                            ),
+                            child: Text(
+                              '${filtered.length}/${_hadiths.length}',
+                              style: TextStyle(
+                                color: glass.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
                               ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _text(
+                          'Lightweight offline hadith collection for initial release',
+                          '????? ??????? ???? ????? ?????? ????? ??????',
+                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: glass.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.35),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _searchController,
+                        style: TextStyle(color: glass.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: _text(
+                            'Search hadith, category, or reference',
+                            '?????, ????????? ?? ????????? ??????',
                           ),
-                        ),
-                        child: Text(
-                          '${filtered.length}/${_hadiths.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                          hintStyle: TextStyle(color: glass.textMuted),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: glass.textMuted,
+                          ),
+                          filled: true,
+                          fillColor: glass.isDark
+                              ? const Color(0x4412272E)
+                              : const Color(0xECFFFFFF),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: glass.glassBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: glass.glassBorder),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 10,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _text(
-                      'Lightweight offline hadith collection for initial release',
-                      'প্রথম রিলিজের জন্য হালকা অফলাইন হাদিস সংগ্রহ',
-                    ),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xE8FFFFFF),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: _text(
-                        'Search hadith, category, or reference',
-                        'হাদিস, ক্যাটাগরি বা রেফারেন্স খুঁজুন',
-                      ),
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Color(0xFFB3261E)),
-                            ),
-                            const SizedBox(height: 10),
-                            FilledButton(
-                              onPressed: _loadHadiths,
-                              child: Text(_text('Retry', 'আবার চেষ্টা')),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        final hasAudio = (item.audio ?? '').trim().isNotEmpty;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => _openHadithDetails(item),
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: BrandColors.border),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x12000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(color: glass.accent),
+                      )
+                    : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: glass.textSecondary),
+                              ),
+                              const SizedBox(height: 10),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: glass.accent,
+                                  foregroundColor: glass.isDark
+                                      ? const Color(0xFF032F35)
+                                      : Colors.white,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 9,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: BrandColors.tintBackground,
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '#${item.id}',
-                                        style: const TextStyle(
-                                          color: BrandColors.primaryDark,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _categoryLabel(item.category),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: BrandColors.textSecondary,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton.filledTonal(
-                                      tooltip: hasAudio
-                                          ? _text('Play audio', 'অডিও চালান')
-                                          : _text('No audio yet', 'অডিও নেই'),
-                                      onPressed: hasAudio
-                                          ? () => _onTapPlay(item)
-                                          : null,
-                                      icon: const Icon(
-                                        Icons.play_arrow_rounded,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.titleBn.isNotEmpty
-                                      ? item.titleBn
-                                      : item.titleEn,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: BrandColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  item.english,
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: BrandColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  item.reference,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: BrandColors.warning,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
+                                onPressed: _loadHadiths,
+                                child: Text(_text('Retry', '???? ??????')),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-            ),
-            bottomNav(context, 1),
-          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final item = filtered[index];
+                          final hasAudio = (item.audio ?? '').trim().isNotEmpty;
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _openHadithDetails(item),
+                            child: NoorifyGlassCard(
+                              radius: BorderRadius.circular(16),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                12,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 9,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: glass.isDark
+                                              ? const Color(0x331FD5C0)
+                                              : const Color(0x221EA8B8),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '#${item.id}',
+                                          style: TextStyle(
+                                            color: glass.accent,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _categoryLabel(item.category),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: glass.textSecondary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton.filledTonal(
+                                        tooltip: hasAudio
+                                            ? _text('Play audio', '???? ?????')
+                                            : _text('No audio yet', '???? ???'),
+                                        onPressed: hasAudio
+                                            ? () => _onTapPlay(item)
+                                            : null,
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: glass.isDark
+                                              ? const Color(0x3316383E)
+                                              : const Color(0x221EA8B8),
+                                          foregroundColor: glass.accent,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.titleBn.isNotEmpty
+                                        ? item.titleBn
+                                        : item.titleEn,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: glass.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    item.english,
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: glass.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    item.reference,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: glass.accentSoft,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              bottomNav(context, 1),
+            ],
+          ),
         ),
       ),
     );

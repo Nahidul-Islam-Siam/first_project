@@ -10,6 +10,7 @@ import 'package:first_project/features/quran/services/quran_bookmarks_service.da
 import 'package:first_project/features/quran/services/quran_content_cache_service.dart';
 import 'package:first_project/features/quran/services/quran_last_read_service.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class QuranScreen extends StatefulWidget {
   const QuranScreen({super.key});
@@ -19,8 +20,6 @@ class QuranScreen extends StatefulWidget {
 }
 
 class _QuranScreenState extends State<QuranScreen> {
-  static const _quickLinkIds = [18, 36, 55, 67];
-
   final QuranApiService _api = QuranApiService();
   final QuranContentCacheService _contentCache = QuranContentCacheService();
   final QuranBookmarksService _bookmarksService = QuranBookmarksService();
@@ -100,6 +99,13 @@ class _QuranScreenState extends State<QuranScreen> {
       revelationPlace: '',
       totalAyah: 0,
     );
+  }
+
+  QuranAyahBookmark? _firstBookmarkForSurah(int surahNo) {
+    for (final bookmark in _bookmarks) {
+      if (bookmark.surahNo == surahNo) return bookmark;
+    }
+    return null;
   }
 
   Future<void> _loadChapters() async {
@@ -255,8 +261,8 @@ class _QuranScreenState extends State<QuranScreen> {
 
   String _revelationLabel(String place) {
     final lower = place.toLowerCase();
-    if (lower.contains('mecca')) return 'মক্কী';
-    if (lower.contains('medina')) return 'মাদানী';
+    if (lower.contains('mecca')) return 'Makkah';
+    if (lower.contains('medina')) return 'Madinah';
     return place;
   }
 
@@ -676,6 +682,14 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 
   Widget _buildSearchAndFilters() {
+    final glass = NoorifyGlassTheme(context);
+    final searchFill = glass.isDark
+        ? const Color(0xC4142331)
+        : Colors.white.withValues(alpha: 0.95);
+    final searchBorder = glass.isDark
+        ? const Color(0x66A9C7DB)
+        : const Color(0xFF99BED6);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
@@ -683,18 +697,31 @@ class _QuranScreenState extends State<QuranScreen> {
           TextField(
             controller: _searchController,
             focusNode: _searchFocusNode,
+            style: TextStyle(
+              color: glass.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
-              hintText: 'সূরা নাম/নম্বর দিয়ে খুঁজুন',
-              prefixIcon: const Icon(Icons.search_rounded),
+              hintText: 'Search by surah name or number',
+              hintStyle: TextStyle(color: glass.textSecondary),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                color: glass.textSecondary,
+              ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: searchFill,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: BrandColors.border),
+                borderSide: BorderSide(color: searchBorder, width: 1.2),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: BrandColors.border),
+                borderSide: BorderSide(color: searchBorder, width: 1.2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: glass.accent, width: 1.7),
               ),
             ),
           ),
@@ -710,15 +737,23 @@ class _QuranScreenState extends State<QuranScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: BrandColors.tintBackground,
+                    color: glass.isDark
+                        ? const Color(0x7D152638)
+                        : BrandColors.tintBackground,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: BrandColors.border),
+                    border: Border.all(
+                      color: glass.isDark
+                          ? const Color(0x55B4D8EE)
+                          : BrandColors.border,
+                    ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Offline cache',
                     style: TextStyle(
                       fontSize: 12,
-                      color: BrandColors.primaryDark,
+                      color: glass.isDark
+                          ? const Color(0xFFC5E2F0)
+                          : BrandColors.primaryDark,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -743,9 +778,30 @@ class _QuranScreenState extends State<QuranScreen> {
                 label: const Text(
                   '\u09a1\u09be\u0989\u09a8\u09b2\u09cb\u09a1\u09c7\u09a1',
                 ),
-                selectedColor: BrandColors.tintBackgroundStrong,
-                checkmarkColor: BrandColors.primaryDark,
-                side: const BorderSide(color: BrandColors.border),
+                labelStyle: TextStyle(
+                  color: _showOnlyDownloaded
+                      ? (glass.isDark ? const Color(0xFF032F35) : Colors.white)
+                      : glass.textPrimary,
+                  fontWeight: _showOnlyDownloaded
+                      ? FontWeight.w700
+                      : FontWeight.w600,
+                ),
+                selectedColor: glass.accent.withValues(
+                  alpha: glass.isDark ? 0.38 : 0.22,
+                ),
+                backgroundColor: glass.isDark
+                    ? const Color(0x66162538)
+                    : Colors.white.withValues(alpha: 0.94),
+                checkmarkColor: _showOnlyDownloaded
+                    ? (glass.isDark ? const Color(0xFF032F35) : Colors.white)
+                    : glass.accent,
+                side: BorderSide(
+                  color: _showOnlyDownloaded
+                      ? glass.accentSoft
+                      : (glass.isDark
+                            ? const Color(0x55B4D8EE)
+                            : BrandColors.border),
+                ),
                 onSelected: (v) => setState(() => _showOnlyDownloaded = v),
               ),
             ],
@@ -804,64 +860,75 @@ class _QuranScreenState extends State<QuranScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
     return Scaffold(
-      backgroundColor: BrandColors.screenBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildSearchAndFilters(),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_error!),
-                          const SizedBox(height: 8),
-                          FilledButton(
-                            onPressed: _loadChapters,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: BrandColors.primary,
-                              foregroundColor: Colors.white,
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              _buildSearchAndFilters(),
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(color: glass.accent),
+                      )
+                    : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _error!,
+                              style: TextStyle(color: glass.textSecondary),
                             ),
-                            child: const Text('আবার চেষ্টা করুন'),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            FilledButton(
+                              onPressed: _loadChapters,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: glass.accent,
+                                foregroundColor: glass.isDark
+                                    ? const Color(0xFF032F35)
+                                    : Colors.white,
+                              ),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        itemCount: _filteredChapters.length,
+                        itemBuilder: (context, index) {
+                          final chapter = _filteredChapters[index];
+                          final downloaded = _downloadedSurahNos.contains(
+                            chapter.surahNo,
+                          );
+                          final downloading = _downloadingSurahNos.contains(
+                            chapter.surahNo,
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _QuranSurahTile(
+                              chapter: chapter,
+                              downloaded: downloaded,
+                              downloading: downloading,
+                              revelationLabel: _revelationLabel(
+                                chapter.revelationPlace,
+                              ),
+                              onTap: () => _showSurahDetail(chapter),
+                              onDownload: () =>
+                                  _downloadSurahForOffline(chapter),
+                              onOpenAudio: () => _showSurahDetail(chapter),
+                            ),
+                          );
+                        },
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      itemCount: _filteredChapters.length,
-                      itemBuilder: (context, index) {
-                        final chapter = _filteredChapters[index];
-                        final downloaded = _downloadedSurahNos.contains(
-                          chapter.surahNo,
-                        );
-                        final downloading = _downloadingSurahNos.contains(
-                          chapter.surahNo,
-                        );
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _QuranSurahTile(
-                            chapter: chapter,
-                            downloaded: downloaded,
-                            downloading: downloading,
-                            revelationLabel: _revelationLabel(
-                              chapter.revelationPlace,
-                            ),
-                            onTap: () => _showSurahDetail(chapter),
-                            onDownload: () => _downloadSurahForOffline(chapter),
-                            onOpenAudio: () => _showSurahDetail(chapter),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            bottomNav(context, 2),
-          ],
+              ),
+              bottomNav(context, 2),
+            ],
+          ),
         ),
       ),
     );
@@ -955,23 +1022,46 @@ class _FilterChipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+    final bgColor = selected
+        ? glass.accent
+        : (glass.isDark
+              ? const Color(0x66162538)
+              : Colors.white.withValues(alpha: 0.94));
+    final borderColor = selected
+        ? glass.accentSoft
+        : (glass.isDark ? const Color(0x55B4D8EE) : BrandColors.border);
+    final textColor = selected
+        ? (glass.isDark ? const Color(0xFF032F35) : Colors.white)
+        : glass.textPrimary;
+
     return InkWell(
       borderRadius: BorderRadius.circular(100),
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? BrandColors.primary : Colors.white,
+          color: bgColor,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(
-            color: selected ? BrandColors.primary : BrandColors.border,
-          ),
+          border: Border.all(color: borderColor),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: glass.accent.withValues(
+                      alpha: glass.isDark ? 0.28 : 0.22,
+                    ),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : BrandColors.textPrimary,
-            fontWeight: FontWeight.w600,
+            color: textColor,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
           ),
         ),
       ),
@@ -1000,18 +1090,29 @@ class _QuranSurahTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+    final translation = chapter.surahNameTranslation.trim().isEmpty
+        ? 'Translation unavailable'
+        : chapter.surahNameTranslation.trim();
+
     return Material(
-      color: Colors.white,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Ink(
+        child: NoorifyGlassCard(
+          radius: BorderRadius.circular(16),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BrandColors.border),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: glass.isDark
+                  ? const Color(0x32000000)
+                  : const Color(0x170E3853),
+              blurRadius: 13,
+              offset: const Offset(0, 6),
+            ),
+          ],
           child: Row(
             children: [
               Container(
@@ -1019,10 +1120,10 @@ class _QuranSurahTile extends StatelessWidget {
                 height: 48,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [BrandColors.primaryDark, BrandColors.primary],
+                    colors: [glass.accentSoft, glass.accent],
                   ),
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -1043,8 +1144,8 @@ class _QuranSurahTile extends StatelessWidget {
                   children: [
                     Text(
                       chapter.surahNameArabic,
-                      style: const TextStyle(
-                        color: BrandColors.textPrimary,
+                      style: TextStyle(
+                        color: glass.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1052,18 +1153,23 @@ class _QuranSurahTile extends StatelessWidget {
                     const SizedBox(height: 1),
                     Text(
                       chapter.surahName,
-                      style: const TextStyle(
-                        color: BrandColors.textSecondary,
+                      style: TextStyle(
+                        color: glass.isDark
+                            ? const Color(0xFFE4F1FA)
+                            : const Color(0xFF21465F),
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$revelationLabel • ${chapter.totalAyah} আয়াত • ${chapter.surahNameTranslation}',
-                      style: const TextStyle(
-                        color: BrandColors.textMuted,
+                      '$revelationLabel - ${chapter.totalAyah} ayah - $translation',
+                      style: TextStyle(
+                        color: glass.isDark
+                            ? const Color(0xFFC6DBEB)
+                            : const Color(0xFF3F627B),
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1077,11 +1183,13 @@ class _QuranSurahTile extends StatelessWidget {
                     : onDownload,
                 style: IconButton.styleFrom(
                   backgroundColor: downloaded
-                      ? const Color(0xFFEAF7EE)
-                      : BrandColors.tintBackground,
-                  foregroundColor: downloaded
-                      ? const Color(0xFF16A34A)
-                      : BrandColors.primaryDark,
+                      ? (glass.isDark
+                            ? const Color(0x331FD5C0)
+                            : const Color(0x221EA8B8))
+                      : (glass.isDark
+                            ? const Color(0x3316383E)
+                            : const Color(0x221EA8B8)),
+                  foregroundColor: downloaded ? glass.accentSoft : glass.accent,
                 ),
                 icon: downloading
                     ? const SizedBox(

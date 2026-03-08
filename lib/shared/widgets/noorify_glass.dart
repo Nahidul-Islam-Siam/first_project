@@ -9,39 +9,34 @@ class NoorifyGlassTheme {
 
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
-  Color get bgTop =>
-      isDark ? const Color(0xFF071A1F) : const Color(0xFFF4FBFA);
-  Color get bgMid =>
-      isDark ? const Color(0xFF0A2229) : const Color(0xFFEAF6F3);
+  Color get bgTop => isDark ? const Color(0xFF060C17) : const Color(0xFFF7FBFF);
+  Color get bgMid => isDark ? const Color(0xFF0A1521) : const Color(0xFFEAF4FB);
   Color get bgBottom =>
-      isDark ? const Color(0xFF08161C) : const Color(0xFFF3FBFA);
+      isDark ? const Color(0xFF08111B) : const Color(0xFFF2F8FD);
 
   Color get glassStart =>
-      isDark ? const Color(0xCC14252B) : const Color(0xF2FFFFFF);
+      isDark ? const Color(0xFF121F2E) : const Color(0xF7FFFFFF);
   Color get glassEnd =>
-      isDark ? const Color(0xB0122027) : const Color(0xDBEDF7F5);
+      isDark ? const Color(0xFF0D1824) : const Color(0xDBF2F8FD);
   Color get glassBorder =>
-      isDark ? const Color(0x44A7F5DB) : const Color(0xFFD3E8E2);
+      isDark ? const Color(0x22D2F4FF) : const Color(0xCCD1E1EC);
   Color get glassShadow =>
-      isDark ? const Color(0x66000000) : const Color(0x1A154D41);
+      isDark ? const Color(0x50000000) : const Color(0x260E3853);
 
-  Color get textPrimary =>
-      isDark ? const Color(0xFFEAF8F3) : const Color(0xFF153430);
+  Color get textPrimary => isDark ? Colors.white : const Color(0xFF143349);
   Color get textSecondary =>
-      isDark ? const Color(0xFF98B9B0) : const Color(0xFF4D756D);
+      isDark ? const Color(0xFF9BC1D8) : const Color(0xFF5F7E94);
   Color get textMuted =>
-      isDark ? const Color(0xFF7FA097) : const Color(0xFF64887F);
+      isDark ? const Color(0xFF88AFC7) : const Color(0xFF4D6B82);
 
-  Color get accent => isDark ? const Color(0xFF27D8B2) : const Color(0xFF119C88);
+  Color get accent =>
+      isDark ? const Color(0xFF1FD5C0) : const Color(0xFF1EA8B8);
   Color get accentSoft =>
-      isDark ? const Color(0xFF7EE4CD) : const Color(0xFF23B09A);
+      isDark ? const Color(0xFF7ED9EE) : const Color(0xFF2EA2BF);
 }
 
 class NoorifyGlassBackground extends StatelessWidget {
-  const NoorifyGlassBackground({
-    super.key,
-    required this.child,
-  });
+  const NoorifyGlassBackground({super.key, required this.child});
 
   final Widget child;
 
@@ -67,7 +62,7 @@ class NoorifyGlassBackground extends StatelessWidget {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0x3327D8B2), Color(0x00000000)],
+                  colors: [Color(0x3323DFCC), Color(0x00000000)],
                 ),
               ),
             ),
@@ -81,7 +76,7 @@ class NoorifyGlassBackground extends StatelessWidget {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0x2227D8B2), Color(0x00000000)],
+                  colors: [Color(0x2230A4CF), Color(0x00000000)],
                 ),
               ),
             ),
@@ -99,11 +94,13 @@ class NoorifyGlassCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(14),
     this.radius = const BorderRadius.all(Radius.circular(18)),
+    this.boxShadow,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final BorderRadius radius;
+  final List<BoxShadow>? boxShadow;
 
   @override
   Widget build(BuildContext context) {
@@ -122,13 +119,15 @@ class NoorifyGlassCard extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
             border: Border.all(color: glass.glassBorder),
-            boxShadow: [
-              BoxShadow(
-                color: glass.glassShadow,
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            boxShadow:
+                boxShadow ??
+                [
+                  BoxShadow(
+                    color: glass.glassShadow,
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
           ),
           child: child,
         ),

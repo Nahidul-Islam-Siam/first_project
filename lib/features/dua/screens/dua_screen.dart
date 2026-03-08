@@ -4,6 +4,7 @@ import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/dua/models/dua_item.dart';
 import 'package:first_project/features/dua/services/dua_service.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class DuaScreen extends StatefulWidget {
   const DuaScreen({super.key});
@@ -240,278 +241,295 @@ class _DuaScreenState extends State<DuaScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredDuas;
+    final glass = NoorifyGlassTheme(context);
 
     return Scaffold(
-      backgroundColor: BrandColors.screenBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    BrandColors.primaryDark,
-                    BrandColors.primary,
-                    BrandColors.primaryLight,
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                child: NoorifyGlassCard(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                  radius: BorderRadius.circular(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Hisnul Muslim Duas',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Hisnul Muslim Duas',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    color: glass.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: glass.isDark
+                                  ? const Color(0x331FD5C0)
+                                  : const Color(0x1F1EA8B8),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: glass.glassBorder),
+                            ),
+                            child: Text(
+                              '${filtered.length}/${_duas.length}',
+                              style: TextStyle(
+                                color: glass.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
                               ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Read, search, and save dua references',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: glass.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.35),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _searchController,
+                        style: TextStyle(color: glass.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'Search by title, meaning, reference',
+                          hintStyle: TextStyle(color: glass.textMuted),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: glass.textMuted,
                           ),
-                        ),
-                        child: Text(
-                          '${filtered.length}/${_duas.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                          filled: true,
+                          fillColor: glass.isDark
+                              ? const Color(0x4412272E)
+                              : const Color(0xECFFFFFF),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: glass.glassBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: glass.glassBorder),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 10,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Read, search, and save dua references',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xE8FFFFFF),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search by title, meaning, reference',
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (!_isLoading && _error == null)
-              SizedBox(
-                height: 48,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final value = _categories[index];
-                    final selected = value == _selectedCategory;
-                    return ChoiceChip(
-                      selected: selected,
-                      label: Text(_categoryLabel(value)),
-                      selectedColor: BrandColors.tintBackgroundStrong,
-                      checkmarkColor: BrandColors.primaryDark,
-                      side: BorderSide(
-                        color: selected
-                            ? BrandColors.primary
-                            : BrandColors.border,
-                      ),
-                      onSelected: (_) =>
-                          setState(() => _selectedCategory = value),
-                    );
-                  },
                 ),
               ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Color(0xFFB3261E)),
-                            ),
-                            const SizedBox(height: 10),
-                            FilledButton(
-                              onPressed: _loadDuas,
-                              child: const Text('Retry'),
-                            ),
-                          ],
+              if (!_isLoading && _error == null)
+                SizedBox(
+                  height: 48,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final value = _categories[index];
+                      final selected = value == _selectedCategory;
+                      return ChoiceChip(
+                        selected: selected,
+                        label: Text(_categoryLabel(value)),
+                        selectedColor: glass.isDark
+                            ? const Color(0x331FD5C0)
+                            : const Color(0x261EA8B8),
+                        checkmarkColor: glass.accent,
+                        side: BorderSide(
+                          color: selected ? glass.accent : glass.glassBorder,
                         ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        final hasAudio = (item.audio ?? '').trim().isNotEmpty;
-
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => _openDuaDetails(item),
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: BrandColors.border),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x12000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
+                        labelStyle: TextStyle(
+                          color: selected ? glass.accent : glass.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        onSelected: (_) =>
+                            setState(() => _selectedCategory = value),
+                      );
+                    },
+                  ),
+                ),
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(color: glass.accent),
+                      )
+                    : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: glass.textSecondary),
+                              ),
+                              const SizedBox(height: 10),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: glass.accent,
+                                  foregroundColor: glass.isDark
+                                      ? const Color(0xFF032F35)
+                                      : Colors.white,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 9,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: BrandColors.tintBackground,
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '#${item.id}',
-                                        style: const TextStyle(
-                                          color: BrandColors.primaryDark,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _categoryLabel(item.category),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: BrandColors.textSecondary,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton.filledTonal(
-                                      tooltip: hasAudio
-                                          ? 'Play audio'
-                                          : 'No audio yet',
-                                      onPressed: hasAudio
-                                          ? () => _onTapPlay(item)
-                                          : null,
-                                      icon: const Icon(
-                                        Icons.play_arrow_rounded,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.titleBn.isNotEmpty
-                                      ? item.titleBn
-                                      : item.titleEn,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: BrandColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  item.titleEn,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: BrandColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  item.arabic,
-                                  textDirection: TextDirection.rtl,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: BrandColors.textPrimary,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  item.english,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: BrandColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
+                                onPressed: _loadDuas,
+                                child: const Text('Retry'),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-            ),
-            bottomNav(context, 1),
-          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final item = filtered[index];
+                          final hasAudio = (item.audio ?? '').trim().isNotEmpty;
+
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _openDuaDetails(item),
+                            child: NoorifyGlassCard(
+                              radius: BorderRadius.circular(16),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                12,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 9,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: glass.isDark
+                                              ? const Color(0x331FD5C0)
+                                              : const Color(0x221EA8B8),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '#${item.id}',
+                                          style: TextStyle(
+                                            color: glass.accent,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _categoryLabel(item.category),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: glass.textSecondary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton.filledTonal(
+                                        tooltip: hasAudio
+                                            ? 'Play audio'
+                                            : 'No audio yet',
+                                        onPressed: hasAudio
+                                            ? () => _onTapPlay(item)
+                                            : null,
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: glass.isDark
+                                              ? const Color(0x3316383E)
+                                              : const Color(0x221EA8B8),
+                                          foregroundColor: glass.accent,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.titleBn.isNotEmpty
+                                        ? item.titleBn
+                                        : item.titleEn,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: glass.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    item.titleEn,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: glass.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    item.arabic,
+                                    textDirection: TextDirection.rtl,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      color: glass.textPrimary,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    item.english,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: glass.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              bottomNav(context, 1),
+            ],
+          ),
         ),
       ),
     );

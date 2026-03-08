@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/asmaul_husna/models/asma_name.dart';
 import 'package:first_project/features/asmaul_husna/services/asma_service.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
@@ -102,7 +101,9 @@ class _AsmaScreenState extends State<AsmaScreen> {
               ),
               Expanded(
                 child: _isLoading
-                    ? Center(child: CircularProgressIndicator(color: glass.accent))
+                    ? Center(
+                        child: CircularProgressIndicator(color: glass.accent),
+                      )
                     : _error != null
                     ? _AsmaErrorView(error: _error!, onRetry: _loadAsmaNames)
                     : ListView.separated(
@@ -169,8 +170,8 @@ class _AsmaHeader extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: glass.isDark
-                        ? const Color(0x3327D8B2)
-                        : const Color(0x1F119C88),
+                        ? const Color(0x331FD5C0)
+                        : const Color(0x1F1EA8B8),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: glass.glassBorder),
                   ),
@@ -250,8 +251,9 @@ class _AsmaErrorView extends StatelessWidget {
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: glass.accent,
-                foregroundColor:
-                    glass.isDark ? const Color(0xFF052620) : Colors.white,
+                foregroundColor: glass.isDark
+                    ? const Color(0xFF032F35)
+                    : Colors.white,
               ),
               onPressed: onRetry,
               child: const Text('Retry'),
@@ -291,8 +293,8 @@ class _AsmaNameCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: glass.isDark
-                      ? const Color(0x3327D8B2)
-                      : const Color(0x22119C88),
+                      ? const Color(0x331FD5C0)
+                      : const Color(0x221EA8B8),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -310,7 +312,7 @@ class _AsmaNameCard extends StatelessWidget {
                 style: IconButton.styleFrom(
                   backgroundColor: glass.isDark
                       ? const Color(0x3316383E)
-                      : const Color(0x22119C88),
+                      : const Color(0x221EA8B8),
                   foregroundColor: glass.accent,
                 ),
                 icon: const Icon(Icons.play_arrow_rounded),
@@ -341,10 +343,7 @@ class _AsmaNameCard extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             item.englishMeaning,
-            style: TextStyle(
-              fontSize: 13,
-              color: glass.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: glass.textSecondary),
           ),
           const SizedBox(height: 2),
           Text(
