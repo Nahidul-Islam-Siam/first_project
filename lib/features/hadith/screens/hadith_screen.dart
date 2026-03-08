@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/hadith/models/hadith_item.dart';
 import 'package:first_project/features/hadith/services/hadith_service.dart';
 import 'package:first_project/shared/services/app_globals.dart';
@@ -94,28 +93,30 @@ class _HadithScreenState extends State<HadithScreen> {
 
   String _categoryLabel(String value) {
     final normalized = value.trim();
-    if (!_isBangla) {
-      if (normalized.isEmpty) return 'General';
-      return normalized
-          .split('_')
-          .where((part) => part.isNotEmpty)
-          .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-          .join(' ');
+    if (normalized.isEmpty) return _text('General', 'সাধারণ');
+
+    if (_isBangla) {
+      switch (normalized) {
+        case 'revelation':
+          return 'ওহী';
+        case 'belief':
+          return 'ঈমান';
+        case 'knowledge':
+          return 'জ্ঞান';
+        case 'prayers_salat':
+          return 'সালাত';
+        case 'good_manners_and_form_al_adab':
+          return 'আদব';
+        default:
+          return 'সাধারণ';
+      }
     }
-    switch (normalized) {
-      case 'revelation':
-        return 'ওহী';
-      case 'belief':
-        return 'ঈমান';
-      case 'knowledge':
-        return 'জ্ঞান';
-      case 'prayers_salat':
-        return 'সালাত';
-      case 'good_manners_and_form_al_adab':
-        return 'আদব';
-      default:
-        return 'সাধারণ';
-    }
+
+    return normalized
+        .split('_')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
   }
 
   void _openHadithDetails(HadithItem item) {
@@ -125,6 +126,7 @@ class _HadithScreenState extends State<HadithScreen> {
       showDragHandle: true,
       useSafeArea: true,
       builder: (sheetContext) {
+        final glass = NoorifyGlassTheme(sheetContext);
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: SingleChildScrollView(
@@ -133,18 +135,18 @@ class _HadithScreenState extends State<HadithScreen> {
               children: [
                 Text(
                   item.titleBn.isNotEmpty ? item.titleBn : item.titleEn,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: BrandColors.textPrimary,
+                    color: glass.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item.reference,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: BrandColors.textSecondary,
+                    color: glass.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -153,16 +155,19 @@ class _HadithScreenState extends State<HadithScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: BrandColors.tintBackground,
+                    color: glass.isDark
+                        ? const Color(0x44112635)
+                        : const Color(0xFFEAF3FA),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: glass.glassBorder),
                   ),
                   child: Text(
                     item.arabic,
                     textDirection: TextDirection.rtl,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
-                      color: BrandColors.textPrimary,
+                      color: glass.textPrimary,
                       height: 1.45,
                     ),
                   ),
@@ -172,17 +177,14 @@ class _HadithScreenState extends State<HadithScreen> {
                   _text('English', 'ইংরেজি'),
                   style: TextStyle(
                     fontSize: 12,
-                    color: BrandColors.textMuted,
+                    color: glass.textMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item.english,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: BrandColors.textPrimary,
-                  ),
+                  style: TextStyle(fontSize: 14, color: glass.textPrimary),
                 ),
                 if (item.bangla.trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -190,17 +192,14 @@ class _HadithScreenState extends State<HadithScreen> {
                     _text('Bangla', 'বাংলা'),
                     style: TextStyle(
                       fontSize: 12,
-                      color: BrandColors.textMuted,
+                      color: glass.textMuted,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     item.bangla,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: BrandColors.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 14, color: glass.textPrimary),
                   ),
                 ],
               ],
@@ -247,7 +246,7 @@ class _HadithScreenState extends State<HadithScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _text('Sahih Bukhari (50)', '???? ?????? (??)'),
+                              _text('Sahih Bukhari (50)', 'সহিহ বুখারী (৫০)'),
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
                                     color: glass.textPrimary,
@@ -262,7 +261,7 @@ class _HadithScreenState extends State<HadithScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: glass.isDark
-                                  ? const Color(0x331FD5C0)
+                                  ? const Color(0x332EB8E6)
                                   : const Color(0x1F1EA8B8),
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(color: glass.glassBorder),
@@ -282,7 +281,7 @@ class _HadithScreenState extends State<HadithScreen> {
                       Text(
                         _text(
                           'Lightweight offline hadith collection for initial release',
-                          '????? ??????? ???? ????? ?????? ????? ??????',
+                          'প্রাথমিক রিলিজের জন্য হালকা অফলাইন হাদিস সংগ্রহ',
                         ),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: glass.textSecondary,
@@ -296,7 +295,7 @@ class _HadithScreenState extends State<HadithScreen> {
                         decoration: InputDecoration(
                           hintText: _text(
                             'Search hadith, category, or reference',
-                            '?????, ????????? ?? ????????? ??????',
+                            'হাদিস, ক্যাটাগরি বা রেফারেন্স খুঁজুন',
                           ),
                           hintStyle: TextStyle(color: glass.textMuted),
                           prefixIcon: Icon(
@@ -351,7 +350,7 @@ class _HadithScreenState extends State<HadithScreen> {
                                       : Colors.white,
                                 ),
                                 onPressed: _loadHadiths,
-                                child: Text(_text('Retry', '???? ??????')),
+                                child: Text(_text('Retry', 'পুনরায় চেষ্টা')),
                               ),
                             ],
                           ),
@@ -387,7 +386,7 @@ class _HadithScreenState extends State<HadithScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: glass.isDark
-                                              ? const Color(0x331FD5C0)
+                                              ? const Color(0x332EB8E6)
                                               : const Color(0x221EA8B8),
                                           borderRadius: BorderRadius.circular(
                                             999,
@@ -417,8 +416,8 @@ class _HadithScreenState extends State<HadithScreen> {
                                       ),
                                       IconButton.filledTonal(
                                         tooltip: hasAudio
-                                            ? _text('Play audio', '???? ?????')
-                                            : _text('No audio yet', '???? ???'),
+                                            ? _text('Play audio', 'অডিও চালান')
+                                            : _text('No audio yet', 'অডিও নেই'),
                                         onPressed: hasAudio
                                             ? () => _onTapPlay(item)
                                             : null,

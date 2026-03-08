@@ -170,7 +170,7 @@ class _AsmaHeader extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: glass.isDark
-                        ? const Color(0x331FD5C0)
+                        ? const Color(0x332EB8E6)
                         : const Color(0x1F1EA8B8),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: glass.glassBorder),
@@ -293,7 +293,7 @@ class _AsmaNameCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: glass.isDark
-                      ? const Color(0x331FD5C0)
+                      ? const Color(0x332EB8E6)
                       : const Color(0x221EA8B8),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -324,10 +324,13 @@ class _AsmaNameCard extends StatelessWidget {
             child: Text(
               item.arabic,
               textDirection: TextDirection.rtl,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+              style: TextStyle(
+                fontSize: 31,
+                fontWeight: FontWeight.w600,
+                color: glass.isDark
+                    ? const Color(0xFFEAF5FF)
+                    : const Color(0xFF21465D),
+                height: 1.2,
               ),
             ),
           ),

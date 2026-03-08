@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/dua/models/dua_item.dart';
 import 'package:first_project/features/dua/services/dua_service.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
@@ -130,6 +129,7 @@ class _DuaScreenState extends State<DuaScreen> {
       showDragHandle: true,
       useSafeArea: true,
       builder: (sheetContext) {
+        final glass = NoorifyGlassTheme(sheetContext);
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: SingleChildScrollView(
@@ -138,18 +138,18 @@ class _DuaScreenState extends State<DuaScreen> {
               children: [
                 Text(
                   item.titleBn.isNotEmpty ? item.titleBn : item.titleEn,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: BrandColors.textPrimary,
+                    color: glass.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.titleEn,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: BrandColors.textSecondary,
+                    color: glass.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -158,70 +158,73 @@ class _DuaScreenState extends State<DuaScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: BrandColors.tintBackground,
+                    color: glass.isDark
+                        ? const Color(0x44112635)
+                        : const Color(0xFFEAF3FA),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: glass.glassBorder),
                   ),
                   child: Text(
                     item.arabic,
                     textDirection: TextDirection.rtl,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: BrandColors.textPrimary,
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                      color: glass.textPrimary,
+                      height: 1.4,
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'English',
                   style: TextStyle(
                     fontSize: 12,
-                    color: BrandColors.textMuted,
+                    color: glass.textMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item.english,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: BrandColors.textPrimary,
+                    color: glass.textPrimary,
+                    height: 1.6,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'Bangla',
                   style: TextStyle(
                     fontSize: 12,
-                    color: BrandColors.textMuted,
+                    color: glass.textMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item.bangla,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: BrandColors.textPrimary,
+                    color: glass.textPrimary,
+                    height: 1.6,
                   ),
                 ),
                 if (item.reference.trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Reference',
                     style: TextStyle(
                       fontSize: 12,
-                      color: BrandColors.textMuted,
+                      color: glass.textMuted,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     item.reference,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: BrandColors.textSecondary,
-                    ),
+                    style: TextStyle(fontSize: 13, color: glass.textSecondary),
                   ),
                 ],
               ],
@@ -276,7 +279,7 @@ class _DuaScreenState extends State<DuaScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: glass.isDark
-                                  ? const Color(0x331FD5C0)
+                                  ? const Color(0x332EB8E6)
                                   : const Color(0x1F1EA8B8),
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(color: glass.glassBorder),
@@ -348,7 +351,7 @@ class _DuaScreenState extends State<DuaScreen> {
                         selected: selected,
                         label: Text(_categoryLabel(value)),
                         selectedColor: glass.isDark
-                            ? const Color(0x331FD5C0)
+                            ? const Color(0x332EB8E6)
                             : const Color(0x261EA8B8),
                         checkmarkColor: glass.accent,
                         side: BorderSide(
@@ -427,7 +430,7 @@ class _DuaScreenState extends State<DuaScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: glass.isDark
-                                              ? const Color(0x331FD5C0)
+                                              ? const Color(0x332EB8E6)
                                               : const Color(0x221EA8B8),
                                           borderRadius: BorderRadius.circular(
                                             999,

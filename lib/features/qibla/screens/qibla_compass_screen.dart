@@ -8,8 +8,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:first_project/shared/services/app_globals.dart';
-import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 enum _QiblaSource { none, api, basic }
 
@@ -53,7 +53,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
   String _text(String english, String bangla) => _isBangla ? bangla : english;
 
   String _fallbackLocationLabel() =>
-      _text('Baitul Mukarram, Dhaka', 'বায়তুল মোকাররম, ঢাকা');
+      _text('Baitul Mukarram, Dhaka', 'বায়তুল মুকাররম, ঢাকা');
 
   @override
   void initState() {
@@ -381,6 +381,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
     final dialTurns = _heading == null ? 0.0 : -_heading! / 360;
     final qiblaTurns = (_heading != null && _qiblaBearing != null)
         ? _signedDelta(_qiblaBearing!, _heading!) / 360
@@ -388,277 +389,347 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
     final location = _locationTextLines();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            size: 20,
-                            color: Color(0xFF7E98AE),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _text('Compass', 'কম্পাস'),
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            color: BrandColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      _text(
-                        'Phone sensor heading + Qibla direction',
-                        'ফোন সেন্সর হেডিং + কিবলার দিক',
-                      ),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF7E98AE),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      width: 332,
-                      height: 332,
-                      child: Stack(
-                        alignment: Alignment.center,
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
+                  child: Column(
+                    children: [
+                      Row(
                         children: [
-                          Container(
-                            width: 306,
-                            height: 306,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFE8ECEF),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          AnimatedRotation(
-                            turns: dialTurns,
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOut,
-                            child: SizedBox(
-                              width: 288,
-                              height: 288,
-                              child: CustomPaint(
-                                painter: _CompassDialMarksPainter(),
+                          Material(
+                            color: glass.isDark
+                                ? const Color(0x332EB8E6)
+                                : const Color(0x1A1EA8B8),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => Navigator.of(context).maybePop(),
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 18,
+                                color: glass.textPrimary,
                               ),
                             ),
                           ),
-                          AnimatedRotation(
-                            turns: dialTurns,
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOut,
-                            child: const SizedBox(
-                              width: 272,
-                              height: 272,
-                              child: Stack(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.topCenter,
-                                    child: _CardinalLabel('N'),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: _CardinalLabel('E'),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: _CardinalLabel('S'),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: _CardinalLabel('W'),
-                                  ),
-                                ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _text('Qibla Compass', 'কিবলা কম্পাস'),
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: glass.textPrimary,
                               ),
-                            ),
-                          ),
-                          if (qiblaTurns != null)
-                            AnimatedRotation(
-                              turns: qiblaTurns,
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOut,
-                              child: const SizedBox(
-                                width: 260,
-                                height: 260,
-                                child: Align(
-                                  alignment: Alignment.topCenter,
-                                  child: _QiblaDot(),
-                                ),
-                              ),
-                            ),
-                          const SizedBox(
-                            width: 260,
-                            height: 260,
-                            child: CustomPaint(painter: _NeedlePainter()),
-                          ),
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF6E90A6),
-                              shape: BoxShape.circle,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      _headingText(_heading),
-                      style: const TextStyle(
-                        fontSize: 52,
-                        height: 1,
-                        color: Color(0xFF289AAD),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _directionText(_heading),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        color: Color(0xFF4F6678),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_text('Qibla', 'কিবলা')}: ${_qiblaValueText()}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF5D778A),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _qiblaSourceText(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8096A7),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      location.primary,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Color(0xFF202A35),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (location.secondary.isNotEmpty)
-                      Text(
-                        location.secondary,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6F879A),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    if (_distanceKm != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _text(
-                          '${_distanceKm!.toStringAsFixed(0)} km to Kaaba',
-                          '${_distanceKm!.toStringAsFixed(0)} কিমি দূরে কাবা',
-                        ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF90A4B3),
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(height: 12),
+                      NoorifyGlassCard(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                        radius: BorderRadius.circular(20),
+                        child: Column(
+                          children: [
+                            Text(
+                              _text(
+                                'Phone sensor heading + Qibla direction',
+                                'ফোন সেন্সর হেডিং + কিবলা দিক',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: glass.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: 314,
+                              height: 314,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: 300,
+                                    height: 300,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: RadialGradient(
+                                        colors: glass.isDark
+                                            ? const [
+                                                Color(0xFF18293C),
+                                                Color(0xFF101E2D),
+                                              ]
+                                            : const [
+                                                Color(0xFFFFFFFF),
+                                                Color(0xFFEAF3FA),
+                                              ],
+                                      ),
+                                      border: Border.all(
+                                        color: glass.isDark
+                                            ? const Color(0x3E8CBED8)
+                                            : const Color(0x80BFD8E9),
+                                      ),
+                                    ),
+                                  ),
+                                  AnimatedRotation(
+                                    turns: dialTurns,
+                                    duration: const Duration(milliseconds: 220),
+                                    curve: Curves.easeOut,
+                                    child: SizedBox(
+                                      width: 286,
+                                      height: 286,
+                                      child: CustomPaint(
+                                        painter: _CompassDialMarksPainter(
+                                          isDark: glass.isDark,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  AnimatedRotation(
+                                    turns: dialTurns,
+                                    duration: const Duration(milliseconds: 220),
+                                    curve: Curves.easeOut,
+                                    child: SizedBox(
+                                      width: 268,
+                                      height: 268,
+                                      child: Stack(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.topCenter,
+                                            child: _CardinalLabel(
+                                              'N',
+                                              color: glass.isDark
+                                                  ? const Color(0xFFBCD4E8)
+                                                  : const Color(0xFF557A93),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.centerRight,
+                                            child: _CardinalLabel(
+                                              'E',
+                                              color: glass.isDark
+                                                  ? const Color(0xFFBCD4E8)
+                                                  : const Color(0xFF557A93),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: _CardinalLabel(
+                                              'S',
+                                              color: glass.isDark
+                                                  ? const Color(0xFFBCD4E8)
+                                                  : const Color(0xFF557A93),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: _CardinalLabel(
+                                              'W',
+                                              color: glass.isDark
+                                                  ? const Color(0xFFBCD4E8)
+                                                  : const Color(0xFF557A93),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  if (qiblaTurns != null)
+                                    AnimatedRotation(
+                                      turns: qiblaTurns,
+                                      duration: const Duration(
+                                        milliseconds: 220,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      child: SizedBox(
+                                        width: 256,
+                                        height: 256,
+                                        child: Align(
+                                          alignment: Alignment.topCenter,
+                                          child: _QiblaDot(
+                                            accent: glass.accent,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  SizedBox(
+                                    width: 258,
+                                    height: 258,
+                                    child: CustomPaint(
+                                      painter: _NeedlePainter(
+                                        color: glass.accent,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 11,
+                                    height: 11,
+                                    decoration: BoxDecoration(
+                                      color: glass.isDark
+                                          ? const Color(0xFF8DB3CA)
+                                          : const Color(0xFF6E90A6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              _headingText(_heading),
+                              style: TextStyle(
+                                fontSize: 50,
+                                height: 1,
+                                color: glass.accent,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _directionText(_heading),
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: glass.textSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _text(
+                                'Qibla offset: ${_qiblaValueText()}',
+                                'কিবলা অফসেট: ${_qiblaValueText()}',
+                              ),
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: glass.textSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _qiblaSourceText(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: glass.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              location.primary,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 21,
+                                color: glass.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (location.secondary.isNotEmpty)
+                              Text(
+                                location.secondary,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: glass.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            if (_distanceKm != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _text(
+                                  '${_distanceKm!.toStringAsFixed(0)} km to Kaaba',
+                                  'কাবা পর্যন্ত ${_distanceKm!.toStringAsFixed(0)} কিমি',
+                                ),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: glass.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            if (_usingFallbackLocation) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                _text(
+                                  'Using fallback location (Dhaka)',
+                                  'ফলব্যাক লোকেশন (ঢাকা) ব্যবহার হচ্ছে',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFC58A1E),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: _refreshAll,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: glass.accent,
+                                foregroundColor: glass.isDark
+                                    ? const Color(0xFF072734)
+                                    : Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 22,
+                                  vertical: 12,
+                                ),
+                                shape: const StadiumBorder(),
+                              ),
+                              icon: const Icon(Icons.refresh_rounded, size: 17),
+                              label: const Text(
+                                'Refresh',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            if ((_isLoadingQibla || !_isListening) &&
+                                _sensorError == null) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.1,
+                                  color: glass.accent,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Text(
+                              _statusHint(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: _sensorError == null
+                                    ? glass.textSecondary
+                                    : const Color(0xFFB65757),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                    if (_usingFallbackLocation) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _text(
-                          'Using fallback location (Dhaka)',
-                          'ফলব্যাক লোকেশন (ঢাকা) ব্যবহার হচ্ছে',
-                        ),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF9A7A27),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 14),
-                    FilledButton.icon(
-                      onPressed: _refreshAll,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF289AAD),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
-                        ),
-                        shape: const StadiumBorder(),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: Text(
-                        _text('Refresh', 'রিফ্রেশ'),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                    if ((_isLoadingQibla || !_isListening) &&
-                        _sensorError == null) ...[
-                      const SizedBox(height: 14),
-                      const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: BrandColors.primary,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    Text(
-                      _statusHint(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _sensorError == null
-                            ? const Color(0xFF7E98AE)
-                            : const Color(0xFFB65757),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            bottomNav(context, 3),
-          ],
+              bottomNav(context, 3),
+            ],
+          ),
         ),
       ),
     );
@@ -666,7 +737,9 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
 }
 
 class _QiblaDot extends StatelessWidget {
-  const _QiblaDot();
+  const _QiblaDot({required this.accent});
+
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -674,7 +747,7 @@ class _QiblaDot extends StatelessWidget {
       width: 20,
       height: 20,
       decoration: BoxDecoration(
-        color: const Color(0xFF289AAD),
+        color: accent,
         border: Border.all(color: Colors.white, width: 2),
         shape: BoxShape.circle,
       ),
@@ -684,34 +757,35 @@ class _QiblaDot extends StatelessWidget {
 }
 
 class _CardinalLabel extends StatelessWidget {
-  const _CardinalLabel(this.label);
+  const _CardinalLabel(this.label, {required this.color});
 
   final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-        fontSize: 26,
-        color: Color(0xFF6F8FA5),
-        fontWeight: FontWeight.w700,
-      ),
+      style: TextStyle(fontSize: 26, color: color, fontWeight: FontWeight.w700),
     );
   }
 }
 
 class _CompassDialMarksPainter extends CustomPainter {
+  const _CompassDialMarksPainter({required this.isDark});
+
+  final bool isDark;
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final majorTickPaint = Paint()
-      ..color = const Color(0xFF8AA4B8)
+      ..color = isDark ? const Color(0xFF84A8BE) : const Color(0xFF8AA4B8)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
     final minorTickPaint = Paint()
-      ..color = const Color(0xFF9CB3C3)
+      ..color = isDark ? const Color(0xFF6A8FA8) : const Color(0xFF9CB3C3)
       ..strokeWidth = 1
       ..strokeCap = StrokeCap.round;
 
@@ -736,7 +810,9 @@ class _CompassDialMarksPainter extends CustomPainter {
 }
 
 class _NeedlePainter extends CustomPainter {
-  const _NeedlePainter();
+  const _NeedlePainter({required this.color});
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -744,7 +820,7 @@ class _NeedlePainter extends CustomPainter {
     const northY = 20.0;
 
     final stemPaint = Paint()
-      ..color = const Color(0xFF289AAD)
+      ..color = color
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(center, Offset(center.dx, northY + 20), stemPaint);
@@ -754,7 +830,7 @@ class _NeedlePainter extends CustomPainter {
       ..lineTo(center.dx - 9, northY + 16)
       ..lineTo(center.dx + 9, northY + 16)
       ..close();
-    canvas.drawPath(triangle, Paint()..color = const Color(0xFF289AAD));
+    canvas.drawPath(triangle, Paint()..color = color);
   }
 
   @override

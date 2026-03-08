@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class LocationSelection {
   const LocationSelection({
@@ -162,260 +163,266 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
     final latText = _selectedPoint.latitude.toStringAsFixed(3);
     final lngText = _selectedPoint.longitude.toStringAsFixed(3);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F9),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
-                    behavior: HitTestBehavior.opaque,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 18,
-                        color: Color(0xFF7E98AE),
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                child: Row(
+                  children: [
+                    Material(
+                      color: glass.isDark
+                          ? const Color(0x332EB8E6)
+                          : const Color(0x221EA8B8),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 18,
+                          color: glass.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Location',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: glass.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                child: NoorifyGlassCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  radius: BorderRadius.circular(18),
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(color: glass.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Search',
+                      hintStyle: TextStyle(color: glass.textMuted),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: glass.textMuted,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Location',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F252D),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9EEF2),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search',
-                    hintStyle: TextStyle(color: Color(0xFF8AA0B2)),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      size: 20,
-                      color: Color(0xFF8AA0B2),
-                    ),
-                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _locatingCurrent ? null : _useCurrentLocation,
-                  icon: _locatingCurrent
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.8,
-                            color: Color(0xFF5DA7B4),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _locatingCurrent ? null : _useCurrentLocation,
+                    icon: _locatingCurrent
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.8,
+                              color: glass.accent,
+                            ),
+                          )
+                        : Icon(
+                            Icons.my_location_rounded,
+                            size: 16,
+                            color: glass.accent,
                           ),
-                        )
-                      : const Icon(
-                          Icons.my_location_rounded,
-                          size: 16,
-                          color: Color(0xFF5DA7B4),
-                        ),
-                  label: const Text(
-                    'Use current location',
-                    style: TextStyle(
-                      color: Color(0xFF5DA7B4),
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _selectedPoint,
-                        initialZoom: 15.5,
-                        minZoom: 3,
-                        maxZoom: 19,
-                        onTap: (tapPosition, point) => _onTapMap(point),
+                    label: Text(
+                      'Use current location',
+                      style: TextStyle(
+                        color: glass.accent,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
                       ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.noorify.app',
-                          tileProvider: NetworkTileProvider(
-                            cachingProvider: _tileCachingProvider,
-                          ),
-                        ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              width: 30,
-                              height: 44,
-                              point: _selectedPoint,
-                              child: const _PinMarker(),
-                            ),
-                          ],
-                        ),
-                      ],
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 170,
-                    child: Center(
-                      child: Container(
-                        width: 196,
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.94),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            initialCenter: _selectedPoint,
+                            initialZoom: 15.5,
+                            minZoom: 3,
+                            maxZoom: 19,
+                            onTap: (tapPosition, point) => _onTapMap(point),
+                          ),
                           children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.location_on_rounded,
-                                  size: 14,
-                                  color: Color(0xFFF05555),
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    _selectedLabel,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1F252D),
-                                    ),
-                                  ),
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.noorify.app',
+                              tileProvider: NetworkTileProvider(
+                                cachingProvider: _tileCachingProvider,
+                              ),
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  width: 30,
+                                  height: 44,
+                                  point: _selectedPoint,
+                                  child: const _PinMarker(),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Lat: $latText, Long:$lngText',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF667B8B),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (_resolvingLabel)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 4),
-                                child: SizedBox(
-                                  width: 12,
-                                  height: 12,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.8,
-                                    color: Color(0xFF5DA7B4),
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 20,
-                    right: 20,
-                    bottom: 84,
-                    child: SizedBox(
-                      height: 42,
-                      child: FilledButton(
-                        onPressed: _confirmSelection,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF1D98A9),
-                          foregroundColor: Colors.white,
-                          shape: const StadiumBorder(),
-                        ),
-                        child: const Text(
-                          'Choose Location',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16 / 1.15,
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 170,
+                      child: Center(
+                        child: NoorifyGlassCard(
+                          radius: BorderRadius.circular(12),
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                          child: SizedBox(
+                            width: 196,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_rounded,
+                                      size: 14,
+                                      color: Color(0xFFF05555),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: glass.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Lat: $latText, Long:$lngText',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: glass.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (_resolvingLabel)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.8,
+                                        color: glass.accent,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    right: 14,
-                    bottom: 76,
-                    child: Material(
-                      color: Colors.white.withValues(alpha: 0.96),
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: IconButton(
-                        onPressed: _useCurrentLocation,
-                        icon: const Icon(
-                          Icons.my_location_rounded,
-                          color: Color(0xFF5DA7B4),
-                          size: 21,
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 84,
+                      child: SizedBox(
+                        height: 42,
+                        child: FilledButton(
+                          onPressed: _confirmSelection,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: glass.accent,
+                            foregroundColor: glass.isDark
+                                ? const Color(0xFF072734)
+                                : Colors.white,
+                            shape: const StadiumBorder(),
+                          ),
+                          child: const Text(
+                            'Choose Location',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16 / 1.15,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      right: 14,
+                      bottom: 76,
+                      child: Material(
+                        color: glass.isDark
+                            ? const Color(0xEE112233)
+                            : Colors.white.withValues(alpha: 0.96),
+                        shape: const CircleBorder(),
+                        elevation: 2,
+                        child: IconButton(
+                          onPressed: _useCurrentLocation,
+                          icon: Icon(
+                            Icons.my_location_rounded,
+                            color: glass.accent,
+                            size: 21,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            bottomNav(context, 0),
-          ],
+              bottomNav(context, 0),
+            ],
+          ),
         ),
       ),
     );

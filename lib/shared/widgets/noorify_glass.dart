@@ -30,9 +30,9 @@ class NoorifyGlassTheme {
       isDark ? const Color(0xFF88AFC7) : const Color(0xFF4D6B82);
 
   Color get accent =>
-      isDark ? const Color(0xFF1FD5C0) : const Color(0xFF1EA8B8);
+      isDark ? const Color(0xFF2EB8E6) : const Color(0xFF1EA8B8);
   Color get accentSoft =>
-      isDark ? const Color(0xFF7ED9EE) : const Color(0xFF2EA2BF);
+      isDark ? const Color(0xFF94D5F5) : const Color(0xFF2EA2BF);
 }
 
 class NoorifyGlassBackground extends StatelessWidget {
@@ -62,7 +62,7 @@ class NoorifyGlassBackground extends StatelessWidget {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0x3323DFCC), Color(0x00000000)],
+                  colors: [Color(0x3332B8E6), Color(0x00000000)],
                 ),
               ),
             ),

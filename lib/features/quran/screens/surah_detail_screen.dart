@@ -8,10 +8,12 @@ import 'package:just_audio/just_audio.dart';
 import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/quran/models/quran_models.dart';
+import 'package:first_project/features/quran/screens/quran_bookmarks_screen.dart';
 import 'package:first_project/features/quran/services/quran_api_service.dart';
 import 'package:first_project/features/quran/services/quran_ayah_audio_service.dart';
 import 'package:first_project/features/quran/services/quran_offline_download_service.dart';
 import 'package:first_project/features/quran/services/quran_bookmarks_service.dart';
+import 'package:first_project/features/quran/services/quran_last_read_service.dart';
 import 'package:first_project/features/quran/services/quran_tafsir_service.dart';
 import 'package:first_project/features/quran/services/quran_timing_service.dart';
 
@@ -36,6 +38,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   final QuranAyahAudioService _ayahAudio = QuranAyahAudioService();
   final QuranOfflineDownloadService _offline = QuranOfflineDownloadService();
   final QuranBookmarksService _bookmarks = QuranBookmarksService();
+  final QuranLastReadService _lastRead = QuranLastReadService();
   final QuranTafsirService _tafsir = QuranTafsirService();
   final QuranTimingService _timing = QuranTimingService();
   final AudioPlayer _player = AudioPlayer();
@@ -73,6 +76,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   int _hifzRepeatsLeft = 0;
   bool _didJumpToInitialAyah = false;
   Map<int, QuranAyahBookmark> _bookmarksByAyahNo = const {};
+  int _lastSavedAyahNo = 0;
 
   bool get _hifzModeEnabled => hifzModeEnabledNotifier.value;
   bool get _hifzHideBanglaMeaning => hifzHideBanglaMeaningNotifier.value;
@@ -80,29 +84,29 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   bool get _isDarkTheme => Theme.of(context).brightness == Brightness.dark;
 
   Color get _bgTop =>
-      _isDarkTheme ? const Color(0xFF071A1F) : const Color(0xFFF4FBFA);
+      _isDarkTheme ? const Color(0xFF081522) : const Color(0xFFF7FBFF);
   Color get _bgMid =>
-      _isDarkTheme ? const Color(0xFF0A2229) : const Color(0xFFEAF6F3);
+      _isDarkTheme ? const Color(0xFF0C1B2B) : const Color(0xFFEAF4FB);
   Color get _bgBottom =>
-      _isDarkTheme ? const Color(0xFF08161C) : const Color(0xFFF3FBFA);
+      _isDarkTheme ? const Color(0xFF091421) : const Color(0xFFF2F8FD);
 
   Color get _glassStart =>
-      _isDarkTheme ? const Color(0xCC14252B) : const Color(0xF2FFFFFF);
+      _isDarkTheme ? const Color(0xCC142231) : const Color(0xF2FFFFFF);
   Color get _glassEnd =>
-      _isDarkTheme ? const Color(0xB0122027) : const Color(0xDBEDF7F5);
+      _isDarkTheme ? const Color(0xB0111C29) : const Color(0xDBF2F8FD);
   Color get _glassBorder =>
-      _isDarkTheme ? const Color(0x44A7F5DB) : const Color(0xFFD3E8E2);
+      _isDarkTheme ? const Color(0x449ECFF2) : const Color(0xCCD1E1EC);
   Color get _glassShadow =>
-      _isDarkTheme ? const Color(0x66000000) : const Color(0x1A154D41);
+      _isDarkTheme ? const Color(0x66000000) : const Color(0x260E3853);
 
   Color get _screenTextPrimary =>
-      _isDarkTheme ? const Color(0xFFEAF8F3) : const Color(0xFF153430);
+      _isDarkTheme ? const Color(0xFFEAF5FF) : const Color(0xFF143349);
   Color get _screenTextSecondary =>
-      _isDarkTheme ? const Color(0xFF98B9B0) : const Color(0xFF4D756D);
+      _isDarkTheme ? const Color(0xFF9FBBD0) : const Color(0xFF5F7E94);
   Color get _screenTextMuted =>
-      _isDarkTheme ? const Color(0xFF7FA097) : const Color(0xFF64887F);
+      _isDarkTheme ? const Color(0xFF7E9DB3) : const Color(0xFF4D6B82);
   Color get _accent =>
-      _isDarkTheme ? const Color(0xFF27D8B2) : const Color(0xFF119C88);
+      _isDarkTheme ? const Color(0xFF2EB8E6) : const Color(0xFF1EA8B8);
 
   Widget _buildGlassPanel({
     required Widget child,
@@ -276,6 +280,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         _showBottomPlayer = widget.autoStartAudio;
         _isLoading = false;
       });
+      _trackLastReadAyah(widget.initialAyahNo ?? 1);
 
       await _resolveTimingForSelectedReciter();
 
@@ -286,16 +291,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       if (!mounted) return;
       if (fromCache) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('অফলাইন সেভ করা সূরার কনটেন্ট দেখানো হচ্ছে।'),
-          ),
+          const SnackBar(content: Text('Showing offline saved Surah content.')),
         );
       }
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _error =
-            'সূরার বিস্তারিত লোড করা যায়নি। একবার ইন্টারনেট অন করে এই সূরা খুলুন, পরে অফলাইনে পাবেন।';
+            'Could not load Surah details. Please connect to internet once and try again.';
         _isLoading = false;
       });
     }
@@ -355,7 +358,18 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   String _toBanglaDigits(String input) {
     const latin = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    const bangla = [
+      '\u09e6',
+      '\u09e7',
+      '\u09e8',
+      '\u09e9',
+      '\u09ea',
+      '\u09eb',
+      '\u09ec',
+      '\u09ed',
+      '\u09ee',
+      '\u09ef',
+    ];
     var output = input;
     for (var i = 0; i < latin.length; i++) {
       output = output.replaceAll(latin[i], bangla[i]);
@@ -508,11 +522,20 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     );
   }
 
+  void _trackLastReadAyah(int ayahNo) {
+    if (ayahNo <= 0 || _lastSavedAyahNo == ayahNo) return;
+    _lastSavedAyahNo = ayahNo;
+    unawaited(
+      _lastRead.saveLastRead(surahNo: widget.chapter.surahNo, ayahNo: ayahNo),
+    );
+  }
+
   void _jumpToInitialAyahIfNeeded() {
     if (_didJumpToInitialAyah) return;
     final initialAyahNo = widget.initialAyahNo;
     if (initialAyahNo == null || initialAyahNo <= 0) return;
     _didJumpToInitialAyah = true;
+    _trackLastReadAyah(initialAyahNo);
     final ayahIndex = initialAyahNo - 1;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 140));
@@ -525,6 +548,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final detail = _detail;
     if (detail == null) return;
     final ayahNo = ayahIndex + 1;
+    _trackLastReadAyah(ayahNo);
     final existing = _bookmarkForAyah(ayahNo);
     final noteController = TextEditingController(text: existing?.note ?? '');
 
@@ -626,7 +650,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     noteController.dispose();
   }
 
-  Future<void> _openBookmarksSheet() async {
+  Future<void> _openBookmarksScreen() async {
     final items = _bookmarksByAyahNo.values.toList(growable: false)
       ..sort((a, b) => a.ayahNo.compareTo(b.ayahNo));
     if (items.isEmpty) {
@@ -636,44 +660,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       return;
     }
 
-    final selected = await showModalBottomSheet<QuranAyahBookmark>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return ListView.separated(
-          shrinkWrap: true,
-          itemCount: items.length + 1,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return ListTile(
-                title: Text(
-                  'Bookmarks (${items.length})',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: BrandColors.textPrimary,
-                  ),
-                ),
-              );
-            }
-            final item = items[index - 1];
-            final subtitle = item.note.trim().isEmpty
-                ? 'Saved bookmark'
-                : item.note.trim();
-            return ListTile(
-              leading: const Icon(Icons.bookmark_rounded),
-              title: Text('Ayah ${item.ayahNo}'),
-              subtitle: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              onTap: () => Navigator.of(sheetContext).pop(item),
-            );
-          },
-        );
-      },
+    final selected = await Navigator.of(context).push<QuranAyahBookmark>(
+      MaterialPageRoute<QuranAyahBookmark>(
+        builder: (_) => QuranBookmarksScreen(bookmarks: items),
+      ),
     );
 
     if (selected == null) return;
@@ -689,9 +679,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     required int highlightedWordIndex,
   }) {
     final baseStyle = TextStyle(
-      fontSize: 24,
-      height: 1.7,
-      fontWeight: FontWeight.w600,
+      fontSize: 33,
+      height: 1.55,
+      fontWeight: FontWeight.w500,
       color: _screenTextPrimary,
     );
 
@@ -731,11 +721,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           text: i == words.length - 1 ? word : '$word ',
           style: baseStyle.copyWith(
             color: isHighlighted ? _accent : _screenTextPrimary,
-            fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w600,
+            fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.w500,
             backgroundColor: isHighlighted
                 ? (_isDarkTheme
-                      ? const Color(0x5527D8B2)
-                      : const Color(0x3327D8B2))
+                      ? const Color(0x552EB8E6)
+                      : const Color(0x331EA8B8))
                 : Colors.transparent,
           ),
         ),
@@ -794,7 +784,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final reciter = _selectedReciter;
     if (reciter == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('এই সূরার অডিও পাওয়া যায়নি')),
+        const SnackBar(content: Text('No audio source found for this Surah.')),
       );
       return;
     }
@@ -821,7 +811,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       setState(() => _isPreparingAudio = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('অডিও প্লে করা যায়নি। ইন্টারনেট চেক করুন।'),
+          content: Text('Unable to play audio. Please check internet.'),
         ),
       );
     }
@@ -846,6 +836,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       );
       return;
     }
+    _trackLastReadAyah(ayahIndex + 1);
 
     if (_singleAyahMode && _singleAyahIndex == ayahIndex && _isPlaying) {
       await _player.pause();
@@ -942,13 +933,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       final fileName = path.split('\\').last.split('/').last;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('অডিও সেভ হয়েছে: $fileName')));
+      ).showSnackBar(SnackBar(content: Text('Audio saved: $fileName')));
     } catch (_) {
       if (!mounted) return;
       setState(() => _isDownloadingAudio = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('অডিও ডাউনলোড ব্যর্থ হয়েছে')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Audio download failed')));
     }
   }
 
@@ -957,6 +948,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     if (detail == null) return;
 
     final ayahNo = ayahIndex + 1;
+    _trackLastReadAyah(ayahNo);
     final tafsirFuture = _tafsir.fetchBanglaTafsir(
       surahNo: detail.surahNo,
       ayahNo: ayahNo,
@@ -1298,7 +1290,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: _accent,
                         foregroundColor: _isDarkTheme
-                            ? const Color(0xFF052620)
+                            ? const Color(0xFF082736)
                             : Colors.white,
                       ),
                       icon: _isPreparingAudio
@@ -1335,7 +1327,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: _isDarkTheme
                           ? const Color(0xFF16353C)
-                          : const Color(0xFFDCEEE9),
+                          : const Color(0xFFDAEFF5),
                       foregroundColor: _screenTextPrimary,
                     ),
                     icon: _isDownloadingAudio
@@ -1360,6 +1352,111 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     );
   }
 
+  Widget _buildSurahIntroCard({
+    required QuranSurahDetail detail,
+    required int totalAyah,
+    required int activeAyahIndex,
+  }) {
+    final currentAyah = activeAyahIndex >= 0
+        ? activeAyahIndex + 1
+        : (_lastSavedAyahNo > 0 ? _lastSavedAyahNo : 1);
+    final safeCurrentAyah = totalAyah <= 0
+        ? 0
+        : currentAyah.clamp(1, totalAyah);
+    final progressValue = totalAyah <= 0 ? 0.0 : safeCurrentAyah / totalAyah;
+    final ayahCountLabel = _toBanglaDigits(totalAyah.toString());
+    final currentAyahLabel = _toBanglaDigits(safeCurrentAyah.toString());
+    final bookmarkCount = _bookmarksByAyahNo.length;
+
+    return _buildGlassPanel(
+      borderRadius: const BorderRadius.all(Radius.circular(18)),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            detail.surahNameArabicLong.trim().isEmpty
+                ? detail.surahNameArabic
+                : detail.surahNameArabicLong,
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              color: _screenTextPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${detail.surahName} \u2022 ${_toBanglaDigits(detail.surahNo.toString())}',
+            style: TextStyle(
+              color: _screenTextSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 5,
+              value: progressValue,
+              backgroundColor: _isDarkTheme
+                  ? const Color(0x263A7FA1)
+                  : const Color(0xFFDAEAF3),
+              valueColor: AlwaysStoppedAnimation<Color>(_accent),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(
+                'Ayah $currentAyahLabel/$ayahCountLabel',
+                style: TextStyle(
+                  color: _screenTextPrimary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: _openBookmarksScreen,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _isDarkTheme
+                        ? const Color(0x332EB8E6)
+                        : const Color(0x1A1EA8B8),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: _glassBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.bookmarks_rounded, size: 14, color: _accent),
+                      const SizedBox(width: 5),
+                      Text(
+                        '$bookmarkCount',
+                        style: TextStyle(
+                          color: _screenTextPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAyahCard({
     Key? itemKey,
     required int index,
@@ -1377,14 +1474,23 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final bookmarkNote = bookmark?.note.trim() ?? '';
     final hideBanglaInHifz = _hifzModeEnabled && _hifzHideBanglaMeaning;
     final ayahContainerBorder = highlighted
-        ? const Color(0x8845E4C2)
-        : (_isDarkTheme ? const Color(0x33498A7A) : const Color(0xFFCCE3DC));
+        ? const Color(0x8846BDEB)
+        : (_isDarkTheme ? const Color(0x334E789D) : const Color(0xFFCCE0EE));
     final ayahContainerBg = highlighted
-        ? (_isDarkTheme ? const Color(0xB01B2D33) : const Color(0xF1F4FFFB))
-        : (_isDarkTheme ? const Color(0xA014242B) : const Color(0xEFFFFFFF));
+        ? (_isDarkTheme ? const Color(0xB01B2D33) : const Color(0xFFFCFEFF))
+        : (_isDarkTheme ? const Color(0xA014242B) : const Color(0xFFFDFEFF));
+    final ayahContainerGradient = _isDarkTheme
+        ? null
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: highlighted
+                ? const [Color(0xFFFEFFFF), Color(0xFFF3FAFF)]
+                : const [Color(0xFFFEFFFF), Color(0xFFF6FBFF)],
+          );
     final ayahNumberBg = highlighted
-        ? (_isDarkTheme ? const Color(0xFF27D8B2) : const Color(0xFF15A88F))
-        : (_isDarkTheme ? const Color(0x4027D8B2) : const Color(0x3315A88F));
+        ? (_isDarkTheme ? const Color(0xFF2EB8E6) : const Color(0xFF1EA8B8))
+        : (_isDarkTheme ? const Color(0x402EB8E6) : const Color(0x331EA8B8));
 
     return Material(
       color: Colors.transparent,
@@ -1397,137 +1503,209 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           decoration: BoxDecoration(
             color: ayahContainerBg,
+            gradient: ayahContainerGradient,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: ayahContainerBorder,
               width: highlighted ? 1.4 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: _isDarkTheme
+                    ? const Color(0x26000000)
+                    : const Color(0x120E3853),
+                blurRadius: highlighted ? 16 : 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: ayahNumberBg,
-                      shape: BoxShape.circle,
-                      boxShadow: highlighted
-                          ? [
-                              BoxShadow(
-                                color: const Color(0x6627D8B2),
-                                blurRadius: 14,
-                                spreadRadius: 1,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Text(
-                      _toBanglaDigits((index + 1).toString()),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: highlighted
-                            ? (_isDarkTheme
-                                  ? const Color(0xFF042A22)
-                                  : Colors.white)
-                            : _accent,
+              if (!_isDarkTheme)
+                Positioned(
+                  left: -26,
+                  top: -28,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 180,
+                      height: 74,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: const LinearGradient(
+                          colors: [Color(0x45FFFFFF), Color(0x00FFFFFF)],
+                        ),
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: hasBookmark
-                        ? 'Edit bookmark note'
-                        : 'Bookmark this ayah',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onBookmarkTap,
-                    icon: Icon(
-                      hasBookmark
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      size: 22,
-                      color: hasBookmark ? _accent : _screenTextMuted,
-                    ),
+                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: ayahNumberBg,
+                          shape: BoxShape.circle,
+                          boxShadow: highlighted
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0x662EB8E6),
+                                    blurRadius: 14,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Text(
+                          _toBanglaDigits((index + 1).toString()),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: highlighted
+                                ? (_isDarkTheme
+                                      ? const Color(0xFF082734)
+                                      : Colors.white)
+                                : _accent,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: hasBookmark
+                              ? (_isDarkTheme
+                                    ? const Color(0x332EB8E6)
+                                    : const Color(0x211EA8B8))
+                              : (_isDarkTheme
+                                    ? const Color(0x221D3037)
+                                    : const Color(0x120E3853)),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: _glassBorder),
+                        ),
+                        child: IconButton(
+                          tooltip: hasBookmark
+                              ? 'Edit bookmark note'
+                              : 'Bookmark this ayah',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          onPressed: onBookmarkTap,
+                          icon: Icon(
+                            hasBookmark
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            size: 20,
+                            color: hasBookmark ? _accent : _screenTextMuted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: _isDarkTheme
+                              ? const Color(0x2D2EB8E6)
+                              : const Color(0x251EA8B8),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: _glassBorder),
+                        ),
+                        child: IconButton(
+                          tooltip: isSingleAyahPlaying
+                              ? 'Playing this ayah'
+                              : 'Play this ayah',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          onPressed: onPlayAyah,
+                          icon: Icon(
+                            isSingleAyahPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            size: 21,
+                            color: _accent,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: isSingleAyahPlaying
-                        ? 'Playing this ayah'
-                        : 'Play this ayah',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onPlayAyah,
-                    icon: Icon(
-                      isSingleAyahPlaying
-                          ? Icons.pause_circle_filled_rounded
-                          : Icons.play_circle_fill_rounded,
-                      size: 24,
-                      color: _accent,
+                  if (arabic.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _buildArabicAyahText(
+                        arabic: arabic,
+                        highlightedWordIndex: highlighted
+                            ? highlightedWordIndex
+                            : -1,
+                      ),
                     ),
+                  ],
+                  if (bengali.isNotEmpty && !hideBanglaInHifz) ...[
+                    const SizedBox(height: 7),
+                    Text(
+                      bengali,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.62,
+                        color: _screenTextPrimary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.menu_book_rounded,
+                        size: 14,
+                        color: _screenTextMuted,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tap for Bangla tafsir (saved offline)',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: _screenTextMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
+                  if (bookmarkNote.isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _isDarkTheme
+                            ? const Color(0x332EB8E6)
+                            : const Color(0x221EA8B8),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: _glassBorder),
+                      ),
+                      child: Text(
+                        bookmarkNote,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _screenTextSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              if (arabic.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: _buildArabicAyahText(
-                    arabic: arabic,
-                    highlightedWordIndex: highlighted
-                        ? highlightedWordIndex
-                        : -1,
-                  ),
-                ),
-              ],
-              if (bengali.isNotEmpty && !hideBanglaInHifz) ...[
-                const SizedBox(height: 6),
-                Text(
-                  bengali,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.6,
-                    color: _screenTextPrimary,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 7),
-              Text(
-                'Tap to view Bangla tafsir (auto-saved offline)',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _screenTextMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (bookmarkNote.isNotEmpty) ...[
-                const SizedBox(height: 7),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _isDarkTheme
-                        ? const Color(0x3327D8B2)
-                        : const Color(0x2215A88F),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _glassBorder),
-                  ),
-                  child: Text(
-                    bookmarkNote,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _screenTextSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -1538,14 +1716,16 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final detailForHeader = _detail;
+    final headerArabicName = detailForHeader == null
+        ? widget.chapter.surahNameArabic
+        : (detailForHeader.surahNameArabic.trim().isEmpty
+              ? widget.chapter.surahNameArabic
+              : detailForHeader.surahNameArabic);
     final headerAyahTo = detailForHeader == null
-        ? 5
-        : math.min(
-            5,
-            math.max(
-              detailForHeader.arabicAyahs.length,
-              detailForHeader.bengaliAyahs.length,
-            ),
+        ? math.max(widget.chapter.totalAyah, 1)
+        : math.max(
+            detailForHeader.arabicAyahs.length,
+            detailForHeader.bengaliAyahs.length,
           );
 
     return PopScope(
@@ -1562,6 +1742,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
+          toolbarHeight: 96,
           leading: IconButton(
             onPressed: () => Navigator.of(context).pop(_didDownloadAudio),
             icon: Container(
@@ -1569,8 +1750,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               height: 36,
               decoration: BoxDecoration(
                 color: _isDarkTheme
-                    ? const Color(0x3327D8B2)
-                    : const Color(0x1F119C88),
+                    ? const Color(0x332EB8E6)
+                    : const Color(0x1A1EA8B8),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.arrow_back_rounded, color: _screenTextPrimary),
@@ -1579,6 +1760,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           title: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                headerArabicName,
+                textDirection: TextDirection.rtl,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _screenTextPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 24,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 2),
               Text(
                 widget.chapter.surahName,
                 style: TextStyle(
@@ -1597,10 +1791,35 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               ),
             ],
           ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(14),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 88,
+                    height: 2.5,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: LinearGradient(
+                        colors: [
+                          _accent.withValues(alpha: 0),
+                          _accent.withValues(alpha: 0.85),
+                          _accent.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           actions: [
             IconButton(
               tooltip: 'Bookmarks',
-              onPressed: _openBookmarksSheet,
+              onPressed: _openBookmarksScreen,
               icon: _bookmarksByAyahNo.isNotEmpty
                   ? Stack(
                       clipBehavior: Clip.none,
@@ -1610,8 +1829,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           height: 36,
                           decoration: BoxDecoration(
                             color: _isDarkTheme
-                                ? const Color(0x3327D8B2)
-                                : const Color(0x1F119C88),
+                                ? const Color(0x332EB8E6)
+                                : const Color(0x1A1EA8B8),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -1638,8 +1857,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                       height: 36,
                       decoration: BoxDecoration(
                         color: _isDarkTheme
-                            ? const Color(0x3327D8B2)
-                            : const Color(0x1F119C88),
+                            ? const Color(0x332EB8E6)
+                            : const Color(0x1A1EA8B8),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -1658,8 +1877,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: _isDarkTheme
-                      ? const Color(0x3327D8B2)
-                      : const Color(0x1F119C88),
+                      ? const Color(0x332EB8E6)
+                      : const Color(0x1A1EA8B8),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -1692,7 +1911,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: [Color(0x3327D8B2), Color(0x00000000)],
+                      colors: [Color(0x332EB8E6), Color(0x00000000)],
                     ),
                   ),
                 ),
@@ -1706,7 +1925,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: [Color(0x2227D8B2), Color(0x00000000)],
+                      colors: [Color(0x222EB8E6), Color(0x00000000)],
                     ),
                   ),
                 ),
@@ -1729,7 +1948,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                         style: FilledButton.styleFrom(
                           backgroundColor: _accent,
                           foregroundColor: _isDarkTheme
-                              ? const Color(0xFF052620)
+                              ? const Color(0xFF082736)
                               : Colors.white,
                         ),
                         child: const Text('Try Again'),
@@ -1748,6 +1967,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     final activeAyahIndex = _activeAyahIndex(totalAyah);
                     _maybeAutoScrollToAyah(activeAyahIndex);
                     _jumpToInitialAyahIfNeeded();
+                    if (activeAyahIndex >= 0) {
+                      _trackLastReadAyah(activeAyahIndex + 1);
+                    }
 
                     return ListView.separated(
                       padding: EdgeInsets.fromLTRB(
@@ -1756,36 +1978,46 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                         16,
                         _showBottomPlayer ? 20 : 24,
                       ),
-                      itemCount: totalAyah,
+                      itemCount: totalAyah + 1,
                       separatorBuilder: (_, index) =>
-                          const SizedBox(height: 10),
+                          SizedBox(height: index == 0 ? 12 : 10),
                       itemBuilder: (context, index) {
-                        final arabic = index < detail.arabicAyahs.length
-                            ? detail.arabicAyahs[index]
+                        if (index == 0) {
+                          return _buildSurahIntroCard(
+                            detail: detail,
+                            totalAyah: totalAyah,
+                            activeAyahIndex: activeAyahIndex,
+                          );
+                        }
+
+                        final ayahIndex = index - 1;
+                        final arabic = ayahIndex < detail.arabicAyahs.length
+                            ? detail.arabicAyahs[ayahIndex]
                             : '';
-                        final bengali = index < detail.bengaliAyahs.length
-                            ? detail.bengaliAyahs[index]
+                        final bengali = ayahIndex < detail.bengaliAyahs.length
+                            ? detail.bengaliAyahs[ayahIndex]
                             : '';
-                        final bookmark = _bookmarkForAyah(index + 1);
+                        final bookmark = _bookmarkForAyah(ayahIndex + 1);
                         final wordHighlightIndex = _activeWordIndexForAyah(
-                          index,
+                          ayahIndex,
                           arabic,
                         );
 
                         return _buildAyahCard(
-                          itemKey: _keyForAyahItem(index),
-                          index: index,
+                          itemKey: _keyForAyahItem(ayahIndex),
+                          index: ayahIndex,
                           arabic: arabic,
                           bengali: bengali,
                           bookmark: bookmark,
-                          highlighted: index == activeAyahIndex,
+                          highlighted: ayahIndex == activeAyahIndex,
                           highlightedWordIndex: wordHighlightIndex,
-                          onTap: () => _openAyahTafsirSheet(index),
-                          onPlayAyah: () => _playSingleAyah(index),
-                          onBookmarkTap: () => _openAyahBookmarkSheet(index),
+                          onTap: () => _openAyahTafsirSheet(ayahIndex),
+                          onPlayAyah: () => _playSingleAyah(ayahIndex),
+                          onBookmarkTap: () =>
+                              _openAyahBookmarkSheet(ayahIndex),
                           isSingleAyahPlaying:
                               _singleAyahMode &&
-                              _singleAyahIndex == index &&
+                              _singleAyahIndex == ayahIndex &&
                               _isPlaying,
                         );
                       },

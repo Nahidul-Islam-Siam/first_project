@@ -3,7 +3,6 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/mosque/models/mosque_item.dart';
 import 'package:first_project/features/mosque/services/mosque_location_service.dart';
 import 'package:first_project/features/mosque/services/mosque_results_cache_service.dart';
@@ -11,6 +10,7 @@ import 'package:first_project/features/mosque/services/mosque_service.dart';
 import 'package:first_project/features/mosque/screens/set_location_screen.dart';
 import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 enum _LocationFallbackReason {
   none,
@@ -427,68 +427,70 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
     required String subtitle,
     VoidCallback? onRetry,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE1E8EC)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFF7E98AE)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F252D),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF6F8DA1),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (onRetry != null) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 30,
-                    child: FilledButton(
-                      onPressed: onRetry,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D98A9),
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                        shape: const StadiumBorder(),
-                      ),
-                      child: const Text('Retry'),
+    final glass = NoorifyGlassTheme(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: NoorifyGlassCard(
+        padding: const EdgeInsets.all(16),
+        radius: BorderRadius.circular(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: glass.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: glass.textPrimary,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: glass.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (onRetry != null) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 30,
+                      child: FilledButton(
+                        onPressed: onRetry,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: glass.accent,
+                          foregroundColor: glass.isDark
+                              ? const Color(0xFF072734)
+                              : Colors.white,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text('Retry'),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildMosqueThumbnail() {
+    final glass = NoorifyGlassTheme(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
@@ -499,11 +501,13 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return Container(
-              color: const Color(0xFFE2EBF1),
+              color: glass.isDark
+                  ? const Color(0x33214255)
+                  : const Color(0xFFE8F0F5),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.location_city_rounded,
-                color: Color(0xFF688396),
+                color: glass.textSecondary,
               ),
             );
           },
@@ -513,6 +517,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
   }
 
   Widget _buildMosqueRow(MosqueItem item) {
+    final glass = NoorifyGlassTheme(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -528,10 +533,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                   item.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F252D),
+                    color: glass.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -539,9 +544,9 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                   item.address,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF7D8A95),
+                    color: glass.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -552,14 +557,16 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE9EEF2),
+                    color: glass.isDark
+                        ? const Color(0x2A2EB8E6)
+                        : const Color(0x221EA8B8),
                     borderRadius: BorderRadius.circular(1000),
                   ),
                   child: Text(
                     _distanceText(item.distanceKm),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF88A0B2),
+                      color: glass.accentSoft,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -573,8 +580,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
             child: FilledButton.icon(
               onPressed: () => _onTapDirection(item),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF1D98A9),
-                foregroundColor: Colors.white,
+                backgroundColor: glass.accent,
+                foregroundColor: glass.isDark
+                    ? const Color(0xFF072734)
+                    : Colors.white,
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 minimumSize: const Size(0, 34),
@@ -593,9 +602,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
   }
 
   Widget _buildMosqueList() {
+    final glass = NoorifyGlassTheme(context);
     final items = _visibleMosques;
     if (_isLoading) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.only(top: 28),
         child: Center(
           child: SizedBox(
@@ -603,7 +613,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
             height: 24,
             child: CircularProgressIndicator(
               strokeWidth: 2.2,
-              color: BrandColors.primary,
+              color: glass.accent,
             ),
           ),
         ),
@@ -638,12 +648,13 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       separatorBuilder: (context, index) =>
-          const Divider(height: 1, thickness: 1, color: Color(0xFFE1E8EC)),
+          Divider(height: 1, thickness: 1, color: glass.glassBorder),
       itemBuilder: (context, index) => _buildMosqueRow(items[index]),
     );
   }
 
   Widget _buildNoticeBanner() {
+    final glass = NoorifyGlassTheme(context);
     final message = _noticeMessage;
     if (message == null || message.trim().isEmpty) {
       return const SizedBox.shrink();
@@ -653,25 +664,33 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
       margin: const EdgeInsets.only(top: 2, bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E8),
+        color: glass.isDark ? const Color(0x2E8E6A1E) : const Color(0xFFFFF8E8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF0DDA9)),
+        border: Border.all(
+          color: glass.isDark
+              ? const Color(0x4FB58B34)
+              : const Color(0xFFF0DDA9),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: 16,
-            color: Color(0xFF9A7A27),
+            color: glass.isDark
+                ? const Color(0xFFE5BE70)
+                : const Color(0xFF9A7A27),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF8A6B24),
+                color: glass.isDark
+                    ? const Color(0xFFF2D8A1)
+                    : const Color(0xFF8A6B24),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -680,7 +699,9 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
             TextButton(
               onPressed: () => _refreshMosques(forceResolveLocation: true),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF8A6B24),
+                foregroundColor: glass.isDark
+                    ? const Color(0xFFE5BE70)
+                    : const Color(0xFF8A6B24),
                 textStyle: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -707,6 +728,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
   }
 
   Widget _buildLastUpdatedHeader() {
+    final glass = NoorifyGlassTheme(context);
     final updatedAt = _lastUpdatedAt;
     if (updatedAt == null) return const SizedBox.shrink();
 
@@ -717,16 +739,16 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          const Icon(Icons.update_rounded, size: 14, color: Color(0xFF7E98AE)),
+          Icon(Icons.update_rounded, size: 14, color: glass.textMuted),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               '$prefix: ${_lastUpdatedLabel(updatedAt)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11.5,
-                color: Color(0xFF7E98AE),
+                color: glass.textMuted,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -738,124 +760,137 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F9),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  RefreshIndicator(
-                    onRefresh: () =>
-                        _refreshMosques(forceResolveLocation: true),
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 94),
-                      children: [
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => Navigator.of(context).maybePop(),
-                              behavior: HitTestBehavior.opaque,
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 6),
-                                child: Icon(
-                                  Icons.arrow_back_ios_new_rounded,
-                                  size: 18,
-                                  color: Color(0xFF7E98AE),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Nearest Mosque',
-                              style: TextStyle(
-                                fontSize: 25 / 1.25,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1F252D),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE9EEF2),
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: TextField(
-                                  controller: _searchController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Search',
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFF8AA0B2),
-                                    ),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 12,
-                                    ),
-                                    prefixIcon: Icon(
-                                      Icons.search_rounded,
-                                      size: 20,
-                                      color: Color(0xFF8AA0B2),
-                                    ),
+      backgroundColor: glass.bgBottom,
+      body: NoorifyGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    RefreshIndicator(
+                      color: glass.accent,
+                      onRefresh: () =>
+                          _refreshMosques(forceResolveLocation: true),
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 94),
+                        children: [
+                          Row(
+                            children: [
+                              Material(
+                                color: glass.isDark
+                                    ? const Color(0x332EB8E6)
+                                    : const Color(0x221EA8B8),
+                                shape: const CircleBorder(),
+                                child: IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                  icon: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 18,
+                                    color: glass.textPrimary,
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Material(
-                              color: const Color(0xFFE9EEF2),
-                              shape: const CircleBorder(),
-                              child: IconButton(
-                                tooltip: 'Set location',
-                                onPressed: _openSetLocation,
-                                icon: const Icon(
-                                  Icons.map_outlined,
-                                  color: Color(0xFF7E98AE),
-                                  size: 20,
+                              const SizedBox(width: 8),
+                              Text(
+                                'Nearest Mosque',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: glass.textPrimary,
                                 ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          NoorifyGlassCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        _buildLastUpdatedHeader(),
-                        _buildNoticeBanner(),
-                        _buildMosqueList(),
-                      ],
+                            radius: BorderRadius.circular(18),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchController,
+                                    style: TextStyle(color: glass.textPrimary),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search',
+                                      hintStyle: TextStyle(
+                                        color: glass.textMuted,
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 10,
+                                          ),
+                                      prefixIcon: Icon(
+                                        Icons.search_rounded,
+                                        size: 20,
+                                        color: glass.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton.filledTonal(
+                                  tooltip: 'Set location',
+                                  onPressed: _openSetLocation,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: glass.isDark
+                                        ? const Color(0x332EB8E6)
+                                        : const Color(0x221EA8B8),
+                                    foregroundColor: glass.accent,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.map_outlined,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _buildLastUpdatedHeader(),
+                          _buildNoticeBanner(),
+                          _buildMosqueList(),
+                        ],
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    right: 10,
-                    bottom: 10,
-                    child: Material(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: IconButton(
-                        onPressed: () =>
-                            _refreshMosques(forceResolveLocation: true),
-                        icon: const Icon(
-                          Icons.my_location_rounded,
-                          color: Color(0xFF5DA7B4),
-                          size: 21,
+                    Positioned(
+                      right: 10,
+                      bottom: 10,
+                      child: Material(
+                        color: glass.isDark
+                            ? const Color(0xEE112233)
+                            : Colors.white.withValues(alpha: 0.95),
+                        shape: const CircleBorder(),
+                        elevation: 2,
+                        child: IconButton(
+                          onPressed: () =>
+                              _refreshMosques(forceResolveLocation: true),
+                          icon: Icon(
+                            Icons.my_location_rounded,
+                            color: glass.accent,
+                            size: 21,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            bottomNav(context, 1),
-          ],
+              bottomNav(context, 1),
+            ],
+          ),
         ),
       ),
     );

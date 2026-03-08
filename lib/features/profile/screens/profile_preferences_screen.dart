@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/core/constants/route_names.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class ProfilePreferencesScreen extends StatefulWidget {
   const ProfilePreferencesScreen({super.key});
@@ -18,9 +19,6 @@ class ProfilePreferencesScreen extends StatefulWidget {
 
 class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
   static const _teal = Color(0xFF14A3B8);
-  static const _line = Color(0xFFE5E8EC);
-  static const _mutedText = Color(0xFF8A96A3);
-  static const _titleText = Color(0xFF1F252D);
 
   bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
 
@@ -340,6 +338,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     return ValueListenableBuilder<String?>(
       valueListenable: profilePhotoBase64Notifier,
       builder: (context, encoded, _) {
+        final glass = NoorifyGlassTheme(context);
         final bytes = _decodeProfilePhoto(encoded);
         if (bytes != null) {
           return CircleAvatar(
@@ -348,25 +347,42 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             backgroundColor: Colors.white,
           );
         }
-        return const CircleAvatar(
+        return CircleAvatar(
           radius: 19,
-          backgroundColor: Color(0xFFCCD7E2),
-          child: Icon(Icons.person, color: Color(0xFF6B7A8A), size: 19),
+          backgroundColor: glass.isDark
+              ? const Color(0xFF2A3A4A)
+              : const Color(0xFFCCD7E2),
+          child: Icon(
+            Icons.person,
+            color: glass.isDark
+                ? const Color(0xFFB6C9D8)
+                : const Color(0xFF6B7A8A),
+            size: 19,
+          ),
         );
       },
     );
   }
 
+  Widget _sectionCard({required Widget child}) {
+    return NoorifyGlassCard(
+      radius: BorderRadius.circular(14),
+      padding: EdgeInsets.zero,
+      child: child,
+    );
+  }
+
   Widget _sectionLabel(String text) {
+    final glass = NoorifyGlassTheme(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 12, 6, 6),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10.5,
-            color: _mutedText,
+            color: glass.textMuted,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -381,33 +397,34 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     VoidCallback? onTap,
     Widget? trailing,
   }) {
+    final glass = NoorifyGlassTheme(context);
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
-      leading: Icon(icon, size: 16, color: const Color(0xFF7B8A99)),
+      leading: Icon(icon, size: 16, color: glass.textSecondary),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: _titleText,
+          color: glass.textPrimary,
         ),
       ),
       subtitle: subtitle == null
           ? null
           : Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
-                color: _mutedText,
+                color: glass.textMuted,
                 height: 1.2,
               ),
             ),
       trailing:
           trailing ??
-          const Icon(
+          Icon(
             Icons.chevron_right_rounded,
-            color: Color(0xFFB0BAC3),
+            color: glass.textMuted,
             size: 18,
           ),
       onTap: onTap,
@@ -424,6 +441,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final glass = NoorifyGlassTheme(context);
     return _rowTile(
       icon: icon,
       title: title,
@@ -431,10 +449,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeTrackColor: _teal,
+        activeTrackColor: glass.accent,
         activeThumbColor: Colors.white,
-        inactiveTrackColor: const Color(0xFFD4DCE3),
-        inactiveThumbColor: const Color(0xFF90A2AF),
+        inactiveTrackColor: glass.isDark
+            ? const Color(0x335F7E94)
+            : const Color(0xFFD4DCE3),
+        inactiveThumbColor: glass.isDark
+            ? const Color(0xFF8AA8BC)
+            : const Color(0xFF90A2AF),
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
