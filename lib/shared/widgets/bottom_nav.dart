@@ -15,7 +15,7 @@ Widget bottomNav(BuildContext context, int active) {
     (
       label: 'Discover',
       icon: Icons.explore_outlined,
-      routeName: RouteNames.asma,
+      routeName: RouteNames.discover,
     ),
     (
       label: 'Quran',

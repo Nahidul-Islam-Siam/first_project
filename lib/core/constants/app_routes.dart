@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'route_names.dart';
 import 'package:first_project/features/home/screens/daily_activity_screen.dart';
+import 'package:first_project/features/discover/screens/discover_screen.dart';
 import 'package:first_project/features/profile/screens/edit_profile_screen.dart';
 import 'package:first_project/features/legal/screens/about_screen.dart';
 import 'package:first_project/features/asmaul_husna/screens/asma_screen.dart';
@@ -33,6 +34,8 @@ class AppRoutes {
         return _page(const EditProfileScreen(), settings);
       case RouteNames.activity:
         return _page(const DailyActivityScreen(), settings);
+      case RouteNames.discover:
+        return _page(const DiscoverScreen(), settings);
       case RouteNames.asma:
         return _page(const AsmaScreen(), settings);
       case RouteNames.hadith:

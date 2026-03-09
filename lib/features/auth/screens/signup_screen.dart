@@ -1,38 +1,53 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
+import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class SignupScreen extends StatelessWidget {
   const SignupScreen({super.key});
 
   static const _bgPath = 'assets/images/Login.jpg';
 
-  InputDecoration _fieldStyle({
+  InputDecoration _fieldStyle(
+    NoorifyGlassTheme glass, {
     required String label,
     required String hint,
     required IconData suffix,
   }) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Color(0xFFBDE6FF), fontSize: 10),
+      labelStyle: TextStyle(color: glass.textMuted, fontSize: 10),
       hintText: hint,
-      hintStyle: const TextStyle(
-        color: Colors.white,
+      hintStyle: TextStyle(
+        color: glass.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w600,
       ),
       filled: true,
-      fillColor: const Color(0x2233C6FF),
-      suffixIcon: Icon(suffix, color: const Color(0xFF7ED8FF), size: 16),
+      fillColor: glass.isDark
+          ? const Color(0x3F122634)
+          : const Color(0xDFFFFFFF),
+      suffixIcon: Icon(suffix, color: glass.accentSoft, size: 16),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: glass.glassBorder),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: glass.glassBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: glass.accent.withValues(alpha: 0.7)),
       ),
     );
   }
 
   Widget _authShell(BuildContext context, Widget child) {
+    final glass = NoorifyGlassTheme(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -40,16 +55,22 @@ class SignupScreen extends StatelessWidget {
           _bgPath,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF2D7DD0), Color(0xFF031C5A)],
+                colors: [glass.bgTop, glass.bgMid, glass.bgBottom],
               ),
             ),
           ),
         ),
-        Container(color: const Color(0x6600143B)),
+        Container(
+          color: Colors.black.withValues(alpha: glass.isDark ? 0.45 : 0.2),
+        ),
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+          child: Container(color: Colors.transparent),
+        ),
         SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -65,28 +86,30 @@ class SignupScreen extends StatelessWidget {
     );
   }
 
-  Widget _orDivider() {
+  Widget _orDivider(NoorifyGlassTheme glass) {
     return Row(
-      children: const [
-        Expanded(child: Divider(color: Color(0x447ECBFF))),
+      children: [
+        Expanded(child: Divider(color: glass.glassBorder)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             'OR',
             style: TextStyle(
-              color: Color(0xFFB4DFFF),
+              color: glass.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        Expanded(child: Divider(color: Color(0x447ECBFF))),
+        Expanded(child: Divider(color: glass.glassBorder)),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+
     void openHome() {
       Navigator.of(
         context,
@@ -94,68 +117,71 @@ class SignupScreen extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: glass.bgBottom,
       body: _authShell(
         context,
-        Container(
-          padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
-          decoration: BoxDecoration(
-            color: const Color(0x22000000),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0x2AFFFFFF)),
-          ),
+        NoorifyGlassCard(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+          radius: BorderRadius.circular(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Sign Up',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Color(0xFFD9F0FF),
-                  fontSize: 36,
+                  color: glass.textPrimary,
+                  fontSize: 34,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const Center(
+              Center(
                 child: SizedBox(
-                  width: 72,
-                  child: Divider(color: Color(0x886FD4FF), thickness: 1),
+                  width: 80,
+                  child: Divider(
+                    color: glass.accent.withValues(alpha: 0.5),
+                    thickness: 1,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 decoration: _fieldStyle(
+                  glass,
                   label: 'Email',
-                  hint: 'mulimah.gmail.com',
-                  suffix: Icons.email,
+                  hint: 'muslimah.gmail.com',
+                  suffix: Icons.email_outlined,
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 obscureText: true,
                 decoration: _fieldStyle(
+                  glass,
                   label: 'Password',
                   hint: '........',
-                  suffix: Icons.visibility_off,
+                  suffix: Icons.visibility_off_outlined,
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 obscureText: true,
                 decoration: _fieldStyle(
+                  glass,
                   label: 'Confirm Password',
                   hint: '........',
-                  suffix: Icons.visibility_off,
+                  suffix: Icons.visibility_off_outlined,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Row(
-                children: const [
-                  Icon(Icons.toggle_on, color: Color(0xFF6CDFFF), size: 20),
-                  SizedBox(width: 6),
+                children: [
+                  Icon(Icons.toggle_on, color: glass.accentSoft, size: 20),
+                  const SizedBox(width: 6),
                   Text(
-                    'Save my info ?',
+                    'Save my info?',
                     style: TextStyle(
-                      color: Color(0xFFB9E4FF),
+                      color: glass.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -164,60 +190,74 @@ class SignupScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               SizedBox(
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF28CDEA),
-                    foregroundColor: Colors.white,
+                height: 42,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: glass.accent,
+                    foregroundColor: glass.isDark
+                        ? const Color(0xFF072734)
+                        : Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   onPressed: openHome,
                   child: const Text(
                     'SIGN UP',
                     style: TextStyle(
-                      letterSpacing: 1.3,
+                      letterSpacing: 1.2,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 14),
-              _orDivider(),
+              _orDivider(glass),
               const SizedBox(height: 14),
               SizedBox(
-                height: 38,
+                height: 40,
                 child: FilledButton.tonalIcon(
                   onPressed: openHome,
                   icon: const Icon(Icons.phone_android, size: 18),
                   label: const Text('Continue With Phone'),
+                  style: FilledButton.styleFrom(
+                    foregroundColor: glass.textPrimary,
+                    backgroundColor: glass.isDark
+                        ? const Color(0x332EB8E6)
+                        : const Color(0x221EA8B8),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
               SizedBox(
-                height: 38,
+                height: 40,
                 child: FilledButton.tonalIcon(
                   onPressed: openHome,
                   icon: const Icon(Icons.g_mobiledata, size: 20),
                   label: const Text('Continue With Google'),
+                  style: FilledButton.styleFrom(
+                    foregroundColor: glass.textPrimary,
+                    backgroundColor: glass.isDark
+                        ? const Color(0x332EB8E6)
+                        : const Color(0x221EA8B8),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Already have an account? ',
-                    style: TextStyle(color: Color(0xFFB9E4FF), fontSize: 12),
+                    style: TextStyle(color: glass.textSecondary, fontSize: 12),
                   ),
                   GestureDetector(
                     onTap: () =>
                         Navigator.of(context).pushNamed(RouteNames.signIn),
-                    child: const Text(
+                    child: Text(
                       'Sign In',
                       style: TextStyle(
-                        color: Color(0xFF50DCFF),
+                        color: glass.accent,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),

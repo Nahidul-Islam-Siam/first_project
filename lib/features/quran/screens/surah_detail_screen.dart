@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -81,6 +82,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   bool get _hifzModeEnabled => hifzModeEnabledNotifier.value;
   bool get _hifzHideBanglaMeaning => hifzHideBanglaMeaningNotifier.value;
   int get _hifzRepeatCount => hifzRepeatCountNotifier.value;
+  bool get _showTranslation => showTranslationNotifier.value;
+  String get _translationLanguage => translationLanguageNotifier.value;
   bool get _isDarkTheme => Theme.of(context).brightness == Brightness.dark;
 
   Color get _bgTop =>
@@ -156,6 +159,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   @override
   void initState() {
     super.initState();
+    showTranslationNotifier.addListener(_onReadingPreferenceChanged);
+    translationLanguageNotifier.addListener(_onReadingPreferenceChanged);
     _bindAudioStreams();
     _loadSurahDetail();
     _loadBookmarksForCurrentSurah();
@@ -163,11 +168,46 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   @override
   void dispose() {
+    showTranslationNotifier.removeListener(_onReadingPreferenceChanged);
+    translationLanguageNotifier.removeListener(_onReadingPreferenceChanged);
     _playerStateSub?.cancel();
     _positionSub?.cancel();
     _durationSub?.cancel();
     _player.dispose();
     super.dispose();
+  }
+
+  void _onReadingPreferenceChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  bool _looksMojibake(String value) {
+    for (final unit in value.codeUnits) {
+      if (unit == 0x00C3 ||
+          unit == 0x00C2 ||
+          unit == 0x00E0 ||
+          unit == 0x00D8 ||
+          unit == 0x00D9 ||
+          unit == 0x00D0 ||
+          unit == 0x00E2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _repairMojibake(String value) {
+    var output = value;
+    for (var i = 0; i < 2; i++) {
+      if (!_looksMojibake(output)) break;
+      try {
+        output = utf8.decode(latin1.encode(output));
+      } catch (_) {
+        break;
+      }
+    }
+    return output;
   }
 
   void _bindAudioStreams() {
@@ -1962,7 +2002,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     final detail = _detail!;
                     final totalAyah = math.max(
                       detail.arabicAyahs.length,
-                      detail.bengaliAyahs.length,
+                      math.max(
+                        detail.bengaliAyahs.length,
+                        detail.englishAyahs.length,
+                      ),
                     );
                     final activeAyahIndex = _activeAyahIndex(totalAyah);
                     _maybeAutoScrollToAyah(activeAyahIndex);
@@ -1994,9 +2037,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                         final arabic = ayahIndex < detail.arabicAyahs.length
                             ? detail.arabicAyahs[ayahIndex]
                             : '';
-                        final bengali = ayahIndex < detail.bengaliAyahs.length
-                            ? detail.bengaliAyahs[ayahIndex]
+                        final bangla = ayahIndex < detail.bengaliAyahs.length
+                            ? _repairMojibake(detail.bengaliAyahs[ayahIndex])
                             : '';
+                        final english = ayahIndex < detail.englishAyahs.length
+                            ? _repairMojibake(detail.englishAyahs[ayahIndex])
+                            : '';
+                        final useEnglishTranslation =
+                            _translationLanguage.toLowerCase() == 'english';
+                        final translation = !_showTranslation
+                            ? ''
+                            : (useEnglishTranslation
+                                  ? (english.isEmpty ? bangla : english)
+                                  : bangla);
                         final bookmark = _bookmarkForAyah(ayahIndex + 1);
                         final wordHighlightIndex = _activeWordIndexForAyah(
                           ayahIndex,
@@ -2007,7 +2060,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           itemKey: _keyForAyahItem(ayahIndex),
                           index: ayahIndex,
                           arabic: arabic,
-                          bengali: bengali,
+                          bengali: translation,
                           bookmark: bookmark,
                           highlighted: ayahIndex == activeAyahIndex,
                           highlightedWordIndex: wordHighlightIndex,

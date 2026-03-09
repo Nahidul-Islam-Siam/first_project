@@ -344,13 +344,30 @@ mixin DailyActivityViewMixin
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              for (int i = 0; i < _prayerOrder.length; i++) ...[
-                Expanded(child: _buildPrayerTimeChip(_prayerOrder[i])),
-                if (i != _prayerOrder.length - 1) const SizedBox(width: 7),
-              ],
-            ],
+          SizedBox(
+            height: 98,
+            child: PageView.builder(
+              controller: _prayerPageController,
+              itemCount: _prayerOrder.length,
+              onPageChanged: (index) {
+                final prayer = _prayerOrder[index];
+                if (prayer == _activePrayer) {
+                  if (_selectedPrayer != null) {
+                    setState(() => _selectedPrayer = null);
+                  }
+                  return;
+                }
+                if (_selectedPrayer != prayer) {
+                  setState(() => _selectedPrayer = prayer);
+                }
+              },
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _buildPrayerTimeChip(_prayerOrder[index]),
+                );
+              },
+            ),
           ),
           if (!_isShowingActivePrayer) ...[
             const SizedBox(height: 8),
@@ -363,6 +380,7 @@ mixin DailyActivityViewMixin
                 ),
                 onPressed: () {
                   setState(() => _selectedPrayer = null);
+                  _syncPrayerPageToActive(animate: true);
                 },
                 icon: const Icon(Icons.my_location_rounded, size: 15),
                 label: Text(_text('Back to current', 'Back to current')),
@@ -381,6 +399,14 @@ mixin DailyActivityViewMixin
     return InkWell(
       onTap: () {
         setState(() => _selectedPrayer = prayer);
+        final targetIndex = _prayerOrder.indexOf(prayer);
+        if (targetIndex != -1 && _prayerPageController.hasClients) {
+          _prayerPageController.animateToPage(
+            targetIndex,
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOut,
+          );
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
@@ -1189,7 +1215,7 @@ mixin DailyActivityViewMixin
         en: 'Discover',
         bn: 'Discover',
         icon: Icons.explore_outlined,
-        route: RouteNames.asma,
+        route: RouteNames.discover,
       ),
       (
         en: 'Quran',

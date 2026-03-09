@@ -70,11 +70,13 @@ class QuranSurahDetail extends QuranChapter {
     required super.totalAyah,
     required this.arabicAyahs,
     required this.bengaliAyahs,
+    required this.englishAyahs,
     required this.audioByReciter,
   });
 
   final List<String> arabicAyahs;
   final List<String> bengaliAyahs;
+  final List<String> englishAyahs;
   final List<QuranReciterAudio> audioByReciter;
 
   factory QuranSurahDetail.fromJson(Map<String, dynamic> json) {
@@ -86,6 +88,11 @@ class QuranSurahDetail extends QuranChapter {
     final dynamic bengaliRaw = json['bengali'];
     final bengaliAyahs = bengaliRaw is List
         ? bengaliRaw.map((e) => e.toString()).toList()
+        : <String>[];
+
+    final dynamic englishRaw = json['english'];
+    final englishAyahs = englishRaw is List
+        ? englishRaw.map((e) => e.toString()).toList()
         : <String>[];
 
     final dynamic audioRaw = json['audio'];
@@ -110,6 +117,7 @@ class QuranSurahDetail extends QuranChapter {
       totalAyah: (json['totalAyah'] as num?)?.toInt() ?? bengaliAyahs.length,
       arabicAyahs: arabicAyahs,
       bengaliAyahs: bengaliAyahs,
+      englishAyahs: englishAyahs,
       audioByReciter: audioByReciter,
     );
   }
