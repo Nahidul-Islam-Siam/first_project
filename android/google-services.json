@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "203908439458",
+    "project_id": "noorify-ff933",
+    "storage_bucket": "noorify-ff933.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203908439458:android:27de5ac121d150f9f866fb",
+        "android_client_info": {
+          "package_name": "com.noorify.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0OQUZO5YCbySzzyrKUuoRgWtJFCGBAqY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
