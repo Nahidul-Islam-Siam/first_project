@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:first_project/core/constants/route_names.dart';
 import 'package:first_project/features/dua/models/dua_item.dart';
 import 'package:first_project/features/dua/services/dua_service.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
@@ -271,6 +272,13 @@ class _DuaScreenState extends State<DuaScreen> {
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pushNamed(RouteNames.tasbih),
+                            icon: const Icon(Icons.countertops_rounded),
+                            tooltip: 'Tasbih Counter',
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(

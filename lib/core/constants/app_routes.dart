@@ -7,6 +7,7 @@ import 'package:first_project/features/profile/screens/edit_profile_screen.dart'
 import 'package:first_project/features/legal/screens/about_screen.dart';
 import 'package:first_project/features/asmaul_husna/screens/asma_screen.dart';
 import 'package:first_project/features/dua/screens/dua_screen.dart';
+import 'package:first_project/features/tasbih/screens/tasbih_screen.dart';
 import 'package:first_project/features/hadith/screens/hadith_screen.dart';
 import 'package:first_project/features/mosque/screens/find_mosque_screen.dart';
 import 'package:first_project/features/profile/screens/profile_preferences_screen.dart';
@@ -42,6 +43,8 @@ class AppRoutes {
         return _page(const HadithScreen(), settings);
       case RouteNames.dua:
         return _page(const DuaScreen(), settings);
+      case RouteNames.tasbih:
+        return _page(const TasbihScreen(), settings);
       case RouteNames.quran:
         return _page(const QuranScreen(), settings);
       case RouteNames.prayerCompass:

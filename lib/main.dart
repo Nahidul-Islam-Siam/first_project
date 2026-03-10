@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:first_project/core/theme/brand_colors.dart';
@@ -8,6 +9,7 @@ import 'package:first_project/core/constants/route_names.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   await initializeNotifications();
   await loadAppPreferences();
   runApp(const MyApp());
