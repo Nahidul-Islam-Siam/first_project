@@ -68,6 +68,9 @@ final ValueNotifier<String> profileLocationNotifier = ValueNotifier<String>(
 );
 final ValueNotifier<String?> profilePhotoBase64Notifier =
     ValueNotifier<String?>(null);
+final ValueNotifier<String?> profilePhotoUrlNotifier = ValueNotifier<String?>(
+  null,
+);
 final ValueNotifier<bool> showLatinLettersNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> showTranslationNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<String> translationLanguageNotifier = ValueNotifier<String>(
@@ -77,6 +80,7 @@ final ValueNotifier<bool> showTajweedNotifier = ValueNotifier<bool>(false);
 final ValueNotifier<bool> hapticFeedbackEnabledNotifier = ValueNotifier<bool>(
   true,
 );
+final ValueNotifier<bool> skipAuthGateNotifier = ValueNotifier<bool>(false);
 final ValueNotifier<String> translatorNotifier = ValueNotifier<String>(
   'Dr. Mustafa Khattab',
 );
@@ -283,6 +287,10 @@ Future<void> loadAppPreferences() async {
     profilePhotoBase64Notifier.value = profilePhoto.isEmpty
         ? null
         : profilePhoto;
+    final profilePhotoUrl = (json['profilePhotoUrl'] ?? '').toString().trim();
+    profilePhotoUrlNotifier.value = profilePhotoUrl.isEmpty
+        ? null
+        : profilePhotoUrl;
 
     final showLatin = json['showLatinLetters'];
     if (showLatin is bool) {
@@ -309,6 +317,11 @@ Future<void> loadAppPreferences() async {
     final hapticFeedback = json['hapticFeedback'];
     if (hapticFeedback is bool) {
       hapticFeedbackEnabledNotifier.value = hapticFeedback;
+    }
+
+    final skipAuthGate = json['skipAuthGate'];
+    if (skipAuthGate is bool) {
+      skipAuthGateNotifier.value = skipAuthGate;
     }
 
     final translator = (json['translator'] ?? '').toString().trim();
@@ -370,11 +383,13 @@ Future<void> saveAppPreferences() async {
     'profileName': profileNameNotifier.value,
     'profileLocation': profileLocationNotifier.value,
     'profilePhoto': profilePhotoBase64Notifier.value ?? '',
+    'profilePhotoUrl': profilePhotoUrlNotifier.value ?? '',
     'showLatinLetters': showLatinLettersNotifier.value,
     'showTranslation': showTranslationNotifier.value,
     'translationLanguage': translationLanguageNotifier.value,
     'showTajweed': showTajweedNotifier.value,
     'hapticFeedback': hapticFeedbackEnabledNotifier.value,
+    'skipAuthGate': skipAuthGateNotifier.value,
     'translator': translatorNotifier.value,
     'reciter': reciterNotifier.value,
     'adzanVoice': adzanVoiceNotifier.value,

@@ -5,6 +5,7 @@ import 'package:first_project/features/home/screens/daily_activity_screen.dart';
 import 'package:first_project/features/discover/screens/discover_screen.dart';
 import 'package:first_project/features/profile/screens/edit_profile_screen.dart';
 import 'package:first_project/features/legal/screens/about_screen.dart';
+import 'package:first_project/features/admin/screens/admin_panel_screen.dart';
 import 'package:first_project/features/asmaul_husna/screens/asma_screen.dart';
 import 'package:first_project/features/dua/screens/dua_screen.dart';
 import 'package:first_project/features/tasbih/screens/tasbih_screen.dart';
@@ -55,6 +56,8 @@ class AppRoutes {
         return _page(const PrivacyPolicyScreen(), settings);
       case RouteNames.about:
         return _page(const AboutScreen(), settings);
+      case RouteNames.adminPanel:
+        return _page(const AdminPanelScreen(), settings);
       default:
         return _page(const DailyActivityScreen(), settings);
     }

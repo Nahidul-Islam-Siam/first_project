@@ -20,6 +20,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _locationController;
 
   String? _photoBase64;
+  String? _photoUrl;
   bool _isSaving = false;
 
   @override
@@ -30,6 +31,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       text: profileLocationNotifier.value,
     );
     _photoBase64 = profilePhotoBase64Notifier.value;
+    final remoteUrl = (profilePhotoUrlNotifier.value ?? '').trim();
+    _photoUrl = remoteUrl.isEmpty ? null : remoteUrl;
   }
 
   @override
@@ -95,7 +98,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _removePhoto() {
-    setState(() => _photoBase64 = null);
+    setState(() {
+      _photoBase64 = null;
+      _photoUrl = null;
+    });
   }
 
   Future<void> _saveChanges() async {
@@ -119,6 +125,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     profileNameNotifier.value = name;
     profileLocationNotifier.value = location;
     profilePhotoBase64Notifier.value = _photoBase64;
+    profilePhotoUrlNotifier.value = _photoUrl;
     await saveAppPreferences();
     if (!mounted) return;
     setState(() => _isSaving = false);
@@ -129,6 +136,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     final glass = NoorifyGlassTheme(context);
     final photoBytes = _decodePhoto(_photoBase64);
+    final hasPhotoUrl = (_photoUrl ?? '').trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: glass.bgBottom,
@@ -184,9 +192,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ? const Color(0xFF2A3A4A)
                                   : const Color(0xFFD9DEE3),
                               backgroundImage: photoBytes == null
-                                  ? null
+                                  ? (hasPhotoUrl
+                                        ? NetworkImage(_photoUrl!.trim())
+                                        : null)
                                   : MemoryImage(photoBytes),
-                              child: photoBytes == null
+                              child: photoBytes == null && !hasPhotoUrl
                                   ? Icon(
                                       Icons.person,
                                       size: 46,

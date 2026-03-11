@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
 import 'package:first_project/features/auth/services/auth_service.dart';
+import 'package:first_project/shared/services/app_globals.dart';
 
 class RamadanSplashScreen extends StatefulWidget {
   const RamadanSplashScreen({super.key});
@@ -27,12 +28,17 @@ class _RamadanSplashScreenState extends State<RamadanSplashScreen> {
     if (!mounted) return;
     var nextRoute = RouteNames.home;
     try {
-      nextRoute = AuthService.instance.currentUser == null
-          ? RouteNames.signIn
-          : RouteNames.home;
+      final user = AuthService.instance.currentUser;
+      if (user != null) {
+        await AuthService.instance.syncLocalProfileFromCurrentUser();
+      }
+      nextRoute = skipAuthGateNotifier.value || user != null
+          ? RouteNames.home
+          : RouteNames.signIn;
     } catch (_) {
       nextRoute = RouteNames.home;
     }
+    if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(nextRoute);
   }
 

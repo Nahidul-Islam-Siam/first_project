@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'package:first_project/features/admin/services/admin_role_service.dart';
+import 'package:first_project/shared/services/app_globals.dart';
+
 class AuthService {
   AuthService._();
 
@@ -15,21 +18,84 @@ class AuthService {
     return _googleInitFuture ??= GoogleSignIn.instance.initialize();
   }
 
+  Future<void> _syncLocalProfileFromUser(User? user) async {
+    if (user == null) return;
+
+    var changed = false;
+    final displayName = (user.displayName ?? '').trim();
+    final emailName = (user.email ?? '').split('@').first.trim();
+    final remotePhotoUrl = (user.photoURL ?? '').trim();
+
+    if (displayName.isNotEmpty) {
+      if (profileNameNotifier.value != displayName) {
+        profileNameNotifier.value = displayName;
+        changed = true;
+      }
+    } else if (emailName.isNotEmpty && profileNameNotifier.value != emailName) {
+      profileNameNotifier.value = emailName;
+      changed = true;
+    }
+
+    if (remotePhotoUrl.isNotEmpty) {
+      if (profilePhotoUrlNotifier.value != remotePhotoUrl) {
+        profilePhotoUrlNotifier.value = remotePhotoUrl;
+        changed = true;
+      }
+    } else {
+      final hasCustomLocalPhoto = (profilePhotoBase64Notifier.value ?? '')
+          .trim()
+          .isNotEmpty;
+      if (!hasCustomLocalPhoto && profilePhotoUrlNotifier.value != null) {
+        profilePhotoUrlNotifier.value = null;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await saveAppPreferences();
+    }
+  }
+
+  Future<void> syncLocalProfileFromCurrentUser() async {
+    await _syncLocalProfileFromUser(_auth.currentUser);
+  }
+
+  Future<void> _runPostAuthSync(User? user) async {
+    if (user == null) return;
+    try {
+      await AdminRoleService.instance.ensureUserProfile(user);
+    } catch (_) {
+      // Never block successful auth because of profile bootstrap write failures.
+    }
+    try {
+      await _syncLocalProfileFromUser(user);
+    } catch (_) {
+      // Keep auth flow successful even when local profile sync fails.
+    }
+  }
+
   Future<UserCredential> signInWithEmail({
     required String email,
     required String password,
-  }) {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
+  }) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    await _runPostAuthSync(credential.user);
+    return credential;
   }
 
   Future<UserCredential> signUpWithEmail({
     required String email,
     required String password,
-  }) {
-    return _auth.createUserWithEmailAndPassword(
+  }) async {
+    final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+    await _runPostAuthSync(credential.user);
+    return credential;
   }
 
   Future<void> sendPasswordReset(String email) {
@@ -94,7 +160,9 @@ class AuthService {
     }
 
     final credential = GoogleAuthProvider.credential(idToken: idToken);
-    return _auth.signInWithCredential(credential);
+    final userCredential = await _auth.signInWithCredential(credential);
+    await _runPostAuthSync(userCredential.user);
+    return userCredential;
   }
 
   Future<void> signOut() async {
@@ -143,7 +211,7 @@ class AuthService {
   String messageForGoogleException(GoogleSignInException error) {
     switch (error.code) {
       case GoogleSignInExceptionCode.canceled:
-        return 'Google sign-in was canceled.';
+        return '';
       case GoogleSignInExceptionCode.clientConfigurationError:
       case GoogleSignInExceptionCode.providerConfigurationError:
         return 'Google sign-in is not configured correctly yet.';

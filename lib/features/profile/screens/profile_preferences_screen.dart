@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'package:first_project/features/admin/services/admin_role_service.dart';
 import 'package:first_project/features/auth/services/auth_service.dart';
 import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/core/constants/route_names.dart';
@@ -614,15 +615,24 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
   }
 
   Widget _avatar() {
-    return ValueListenableBuilder<String?>(
-      valueListenable: profilePhotoBase64Notifier,
-      builder: (context, encoded, _) {
+    return ValueListenableBuilder2<String?, String?>(
+      first: profilePhotoBase64Notifier,
+      second: profilePhotoUrlNotifier,
+      builder: (context, encoded, photoUrl, _) {
         final glass = NoorifyGlassTheme(context);
         final bytes = _decodeProfilePhoto(encoded);
+        final hasPhotoUrl = (photoUrl ?? '').trim().isNotEmpty;
         if (bytes != null) {
           return CircleAvatar(
             radius: 19,
             backgroundImage: MemoryImage(bytes),
+            backgroundColor: Colors.white,
+          );
+        }
+        if (hasPhotoUrl) {
+          return CircleAvatar(
+            radius: 19,
+            backgroundImage: NetworkImage(photoUrl!.trim()),
             backgroundColor: Colors.white,
           );
         }
@@ -1220,6 +1230,33 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           );
                         },
                       ),
+                    ),
+                    StreamBuilder<bool>(
+                      stream: AdminRoleService.instance.watchCurrentUserAdmin(),
+                      builder: (context, snapshot) {
+                        final isAdmin = snapshot.data ?? false;
+                        if (!isAdmin) return const SizedBox.shrink();
+                        return Column(
+                          children: [
+                            _sectionLabel(_text('Admin', 'Admin')),
+                            _sectionCard(
+                              child: _rowTile(
+                                icon: Icons.admin_panel_settings_outlined,
+                                title: _text('Admin Panel', 'Admin Panel'),
+                                subtitle: _text(
+                                  'Manage app announcements and modal banners',
+                                  'Manage app announcements and modal banners',
+                                ),
+                                onTap: () {
+                                  Navigator.of(
+                                    context,
+                                  ).pushNamed(RouteNames.adminPanel);
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     Align(

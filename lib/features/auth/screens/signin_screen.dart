@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
+import 'package:first_project/core/utils/network_utils.dart';
 import 'package:first_project/features/auth/services/auth_service.dart';
+import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -134,7 +136,32 @@ class _SignInScreenState extends State<SignInScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<bool> _ensureInternetOrShowMessage() async {
+    final online = await NetworkUtils.hasInternet();
+    if (!online) {
+      _showMessage(
+        'No internet connection. Please check network and try again.',
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _setSkipAuthGate(bool value) async {
+    skipAuthGateNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _continueWithoutSignIn() async {
+    await _setSkipAuthGate(true);
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(RouteNames.home, (route) => false);
+  }
+
   Future<void> _signIn() async {
+    if (!await _ensureInternetOrShowMessage()) return;
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
@@ -149,6 +176,7 @@ class _SignInScreenState extends State<SignInScreen> {
         email: email,
         password: password,
       );
+      await _setSkipAuthGate(false);
       if (!mounted) return;
       Navigator.of(
         context,
@@ -165,6 +193,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _resetPassword() async {
+    if (!await _ensureInternetOrShowMessage()) return;
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       _showMessage('Enter your email first to reset password.');
@@ -182,9 +211,11 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    if (!await _ensureInternetOrShowMessage()) return;
     setState(() => _isLoading = true);
     try {
       await AuthService.instance.signInWithGoogle();
+      await _setSkipAuthGate(false);
       if (!mounted) return;
       Navigator.of(
         context,
@@ -367,6 +398,14 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _isLoading ? null : _continueWithoutSignIn,
+                child: const Text(
+                  'Skip for now',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),

@@ -5,13 +5,16 @@ import 'package:first_project/firebase_options.dart';
 
 import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/shared/services/app_globals.dart';
+import 'package:first_project/shared/services/push_notification_service.dart';
 import 'package:first_project/core/constants/app_routes.dart';
 import 'package:first_project/core/constants/route_names.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeNotifications();
+  await initializePushNotifications();
   await loadAppPreferences();
   runApp(const MyApp());
 }
@@ -45,6 +48,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
           themeMode: darkThemeEnabledNotifier.value
+
               ? ThemeMode.dark
               : ThemeMode.light,
           builder: (context, child) {

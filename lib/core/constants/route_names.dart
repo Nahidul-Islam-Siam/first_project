@@ -16,4 +16,5 @@ class RouteNames {
   static const findMosque = '/find-mosque';
   static const privacyPolicy = '/privacy-policy';
   static const about = '/about';
+  static const adminPanel = '/admin-panel';
 }

@@ -128,6 +128,12 @@ Implementation will happen feature-by-feature in this exact order:
 ## Progress Status
 
 Completed (out of order by priority request):
+- Firebase backend baseline for admin announcements
+  - Added Firestore-backed `users` role profile creation on auth
+  - Added `announcements` backend model/service
+  - Added in-app Admin Panel (role-gated) for create/edit/toggle/delete
+  - Added home modal popup binding to active announcements
+  - Added admin/notification guide doc (`docs/FIREBASE_ADMIN_NOTIFICATIONS.md`)
 - Full profile editing locally (photo, name, preferences)
   - Implemented Figma-style profile settings layout
   - Local photo picking and storage
