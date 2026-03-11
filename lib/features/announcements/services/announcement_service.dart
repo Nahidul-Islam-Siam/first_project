@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:first_project/features/announcements/models/announcement_item.dart';
+import 'package:first_project/shared/services/push_notification_service.dart';
 
 class AnnouncementService {
   AnnouncementService._();
@@ -51,6 +52,7 @@ class AnnouncementService {
     String? posterUrl,
     required bool active,
     required bool showModal,
+    required bool sendPush,
     DateTime? startAt,
     DateTime? endAt,
   }) async {
@@ -63,10 +65,19 @@ class AnnouncementService {
       'poster_url': normalizedPoster.isEmpty ? null : normalizedPoster,
       'active': active,
       'show_modal': showModal,
+      'send_push': sendPush,
+      'push_topic': noorifyBroadcastTopic,
       'start_at': startAt == null ? null : Timestamp.fromDate(startAt.toUtc()),
       'end_at': endAt == null ? null : Timestamp.fromDate(endAt.toUtc()),
       'updated_at': FieldValue.serverTimestamp(),
     };
+
+    if (sendPush) {
+      payload['push_status'] = 'pending';
+      payload['push_requested_at'] = FieldValue.serverTimestamp();
+      payload['push_sent_at'] = null;
+      payload['push_error'] = null;
+    }
 
     if (id == null) {
       payload['created_at'] = FieldValue.serverTimestamp();
@@ -89,6 +100,18 @@ class AnnouncementService {
   Future<void> setShowModal(String id, bool showModal) async {
     await _collection.doc(id).set({
       'show_modal': showModal,
+      'updated_at': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> queuePush(String id) async {
+    await _collection.doc(id).set({
+      'send_push': true,
+      'push_topic': noorifyBroadcastTopic,
+      'push_status': 'pending',
+      'push_requested_at': FieldValue.serverTimestamp(),
+      'push_sent_at': null,
+      'push_error': null,
       'updated_at': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

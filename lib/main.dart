@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,9 +16,9 @@ Future<void> main() async {
   GoogleFonts.config.allowRuntimeFetching = false;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeNotifications();
-  await initializePushNotifications();
   await loadAppPreferences();
   runApp(const MyApp());
+  unawaited(initializePushNotifications());
 }
 
 class MyApp extends StatelessWidget {
@@ -48,7 +50,6 @@ class MyApp extends StatelessWidget {
             ),
           ),
           themeMode: darkThemeEnabledNotifier.value
-
               ? ThemeMode.dark
               : ThemeMode.light,
           builder: (context, child) {

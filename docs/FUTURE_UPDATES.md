@@ -133,6 +133,8 @@ Completed (out of order by priority request):
   - Added `announcements` backend model/service
   - Added in-app Admin Panel (role-gated) for create/edit/toggle/delete
   - Added home modal popup binding to active announcements
+  - Added FCM client integration + `noorify_all` topic subscription
+  - Added `send_push` campaign flow + Cloud Function scaffold (`functions/`)
   - Added admin/notification guide doc (`docs/FIREBASE_ADMIN_NOTIFICATIONS.md`)
 - Full profile editing locally (photo, name, preferences)
   - Implemented Figma-style profile settings layout

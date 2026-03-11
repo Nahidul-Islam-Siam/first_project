@@ -35,6 +35,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
     var active = existing?.active ?? true;
     var showModal = existing?.showModal ?? true;
+    var sendPush = existing?.sendPush ?? false;
     var startAt = existing?.startAt;
     var endAt = existing?.endAt;
     var submitting = false;
@@ -78,6 +79,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   posterUrl: posterUrlController.text,
                   active: active,
                   showModal: showModal,
+                  sendPush: sendPush,
                   startAt: startAt,
                   endAt: endAt,
                 );
@@ -162,6 +164,17 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         value: showModal,
                         onChanged: (value) {
                           setDialogState(() => showModal = value);
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Send push notification'),
+                        subtitle: const Text(
+                          'Queue broadcast push to all users via topic',
+                        ),
+                        value: sendPush,
+                        onChanged: (value) {
+                          setDialogState(() => sendPush = value);
                         },
                       ),
                       const SizedBox(height: 4),
@@ -349,6 +362,16 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
+  String _pushStatusLabel(AnnouncementItem item) {
+    final status = (item.pushStatus ?? '').trim().toLowerCase();
+    if (status == 'sent') return 'Push Sent';
+    if (status == 'pending') return 'Push Pending';
+    if (status == 'processing') return 'Push Processing';
+    if (status == 'failed') return 'Push Failed';
+    if (item.sendPush) return 'Push Pending';
+    return 'Push Off';
+  }
+
   Widget _buildAnnouncementCard(BuildContext context, AnnouncementItem item) {
     final glass = NoorifyGlassTheme(context);
     final title = item.titleBn.isNotEmpty ? item.titleBn : item.titleEn;
@@ -356,6 +379,24 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final windowText =
         'Window: ${_formatDateTime(item.startAt)} -> '
         '${_formatDateTime(item.endAt)}';
+    final pushLabel = _pushStatusLabel(item);
+    final pushStatusLower = pushLabel.toLowerCase();
+    final pushColor = pushStatusLower.contains('sent')
+        ? const Color(0x2436D57A)
+        : pushStatusLower.contains('failed')
+        ? const Color(0x24E75F6D)
+        : pushStatusLower.contains('pending') ||
+              pushStatusLower.contains('processing')
+        ? const Color(0x24FACC15)
+        : const Color(0x24A0A8B1);
+    final pushTextColor = pushStatusLower.contains('sent')
+        ? const Color(0xFF3AD37E)
+        : pushStatusLower.contains('failed')
+        ? const Color(0xFFE77584)
+        : pushStatusLower.contains('pending') ||
+              pushStatusLower.contains('processing')
+        ? const Color(0xFFF5D94E)
+        : glass.textMuted;
 
     return NoorifyGlassCard(
       radius: BorderRadius.circular(16),
@@ -376,25 +417,38 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              _statusChip(
-                label: item.active ? 'Active' : 'Inactive',
-                color: item.active
-                    ? const Color(0x2436D57A)
-                    : const Color(0x24A0A8B1),
-                textColor: item.active
-                    ? const Color(0xFF3AD37E)
-                    : glass.textMuted,
-              ),
-              const SizedBox(width: 6),
-              _statusChip(
-                label: item.showModal ? 'Modal On' : 'Modal Off',
-                color: item.showModal
-                    ? const Color(0x2438BDF8)
-                    : const Color(0x24A0A8B1),
-                textColor: item.showModal
-                    ? const Color(0xFF5BC8FF)
-                    : glass.textMuted,
+              const SizedBox(width: 10),
+              Flexible(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    _statusChip(
+                      label: item.active ? 'Active' : 'Inactive',
+                      color: item.active
+                          ? const Color(0x2436D57A)
+                          : const Color(0x24A0A8B1),
+                      textColor: item.active
+                          ? const Color(0xFF3AD37E)
+                          : glass.textMuted,
+                    ),
+                    _statusChip(
+                      label: item.showModal ? 'Modal On' : 'Modal Off',
+                      color: item.showModal
+                          ? const Color(0x2438BDF8)
+                          : const Color(0x24A0A8B1),
+                      textColor: item.showModal
+                          ? const Color(0xFF5BC8FF)
+                          : glass.textMuted,
+                    ),
+                    _statusChip(
+                      label: pushLabel,
+                      color: pushColor,
+                      textColor: pushTextColor,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -429,6 +483,19 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             windowText,
             style: TextStyle(color: glass.textMuted, fontSize: 10.5),
           ),
+          if ((item.pushError ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Push error: ${item.pushError}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFE77584),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -471,6 +538,18 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 },
                 icon: const Icon(Icons.open_in_new_rounded, size: 16),
                 label: Text(item.showModal ? 'Disable Modal' : 'Enable Modal'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  try {
+                    await _announcementService.queuePush(item.id);
+                    _showMessage('Push queued for broadcast.');
+                  } catch (e) {
+                    _showMessage('Queue push failed: $e');
+                  }
+                },
+                icon: const Icon(Icons.campaign_outlined, size: 16),
+                label: const Text('Queue Push'),
               ),
               OutlinedButton.icon(
                 onPressed: () => _confirmDelete(item),

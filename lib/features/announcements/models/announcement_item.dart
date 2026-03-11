@@ -9,9 +9,15 @@ class AnnouncementItem {
     required this.messageEn,
     required this.active,
     required this.showModal,
+    required this.sendPush,
+    required this.pushTopic,
     this.posterUrl,
+    this.pushStatus,
+    this.pushError,
     this.startAt,
     this.endAt,
+    this.pushRequestedAt,
+    this.pushSentAt,
     this.createdAt,
     this.updatedAt,
     this.createdByUid,
@@ -25,8 +31,14 @@ class AnnouncementItem {
   final String? posterUrl;
   final bool active;
   final bool showModal;
+  final bool sendPush;
+  final String pushTopic;
+  final String? pushStatus;
+  final String? pushError;
   final DateTime? startAt;
   final DateTime? endAt;
+  final DateTime? pushRequestedAt;
+  final DateTime? pushSentAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? createdByUid;
@@ -36,6 +48,7 @@ class AnnouncementItem {
   }
 
   factory AnnouncementItem.fromMap(String id, Map<String, dynamic> map) {
+    final topic = _asString(map['push_topic']);
     return AnnouncementItem(
       id: id,
       titleBn: _asString(map['title_bn']),
@@ -45,8 +58,14 @@ class AnnouncementItem {
       posterUrl: _nullableString(map['poster_url']),
       active: _asBool(map['active'], fallback: true),
       showModal: _asBool(map['show_modal'], fallback: true),
+      sendPush: _asBool(map['send_push'], fallback: false),
+      pushTopic: topic.isEmpty ? 'noorify_all' : topic,
+      pushStatus: _nullableString(map['push_status']),
+      pushError: _nullableString(map['push_error']),
       startAt: _asDateTime(map['start_at']),
       endAt: _asDateTime(map['end_at']),
+      pushRequestedAt: _asDateTime(map['push_requested_at']),
+      pushSentAt: _asDateTime(map['push_sent_at']),
       createdAt: _asDateTime(map['created_at']),
       updatedAt: _asDateTime(map['updated_at']),
       createdByUid: _nullableString(map['created_by_uid']),
@@ -63,8 +82,14 @@ class AnnouncementItem {
       'poster_url': posterUrl,
       'active': active,
       'show_modal': showModal,
+      'send_push': sendPush,
+      'push_topic': pushTopic,
+      'push_status': pushStatus,
+      'push_error': pushError,
       'start_at': startAt,
       'end_at': endAt,
+      'push_requested_at': pushRequestedAt,
+      'push_sent_at': pushSentAt,
       'created_at': createdAt,
       'updated_at': updatedAt,
       'created_by_uid': createdByUid,

@@ -16,7 +16,9 @@ const String noorifyGeneralChannelId = 'noorify_general';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 }
 
@@ -65,11 +67,12 @@ class PushNotificationService {
 
   Future<void> _configureForegroundPresentation() async {
     try {
-      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
     } catch (e) {
       debugPrint('FCM foreground presentation setup failed: $e');
     }
