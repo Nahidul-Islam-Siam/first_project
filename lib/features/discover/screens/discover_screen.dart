@@ -86,7 +86,7 @@ class DiscoverScreen extends StatelessWidget {
                                         Text(
                                           t(
                                             'Islamic Knowledge Hub',
-                                            'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã…Â¾ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°',
+                                            'ইসলামিক জ্ঞান ভান্ডার',
                                           ),
                                           style: TextStyle(
                                             fontSize: 28,
@@ -149,7 +149,7 @@ class DiscoverScreen extends StatelessWidget {
                               ),
                               hintText: t(
                                 'Search for resources...',
-                                'ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨...',
+                                'রিসোর্স খুঁজুন...',
                               ),
                               hintStyle: TextStyle(color: glass.textMuted),
                             ),
@@ -157,23 +157,14 @@ class DiscoverScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         _SectionTitle(
-                          title: t(
-                            'Names of Allah',
-                            'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â®',
-                          ),
+                          title: t('Names of Allah', 'আল্লাহর নাম'),
                         ),
                         _FeatureCard(
-                          title: t(
-                            'Ar-Rahman',
-                            'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â°-ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
-                          ),
-                          subtitle: t(
-                            'The Most Merciful',
-                            'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â® ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â£ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã…Â¸',
-                          ),
+                          title: t('Ar-Rahman', 'আর-রহমান'),
+                          subtitle: t('The Most Merciful', 'পরম করুণাময়'),
                           detail: t(
                             'Featured Name of the Day',
-                            'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â®',
+                            'আজকের নির্বাচিত নাম',
                           ),
                           badge: '1',
                           trailingText: 'Ar-Rahman',
@@ -182,54 +173,29 @@ class DiscoverScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         _SectionTitle(
-                          title: t(
-                            'Hadith Collection',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¹',
-                          ),
+                          title: t('Hadith Collection', 'হাদিস সংগ্রহ'),
                         ),
                         _FeatureCard(
-                          title: t(
-                            'Hadith 1',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â§Ã‚Â§',
-                          ),
-                          subtitle: t(
-                            'Collection: Bukhari',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¹: ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿',
-                          ),
+                          title: t('Hadith 1', 'হাদিস ১'),
+                          subtitle: t('Collection: Bukhari', 'সংগ্রহ: বুখারি'),
                           detail: t(
                             'Read short authentic hadith references',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¹ ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â·ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã…â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
+                            'সহিহ হাদিসের সংক্ষিপ্ত রেফারেন্স পড়ুন',
                           ),
                           icon: Icons.auto_stories_rounded,
                           onTap: () => openRoute(RouteNames.hadith),
                         ),
                         const SizedBox(height: 10),
-                        _SectionTitle(
-                          title: t(
-                            'Dua & Zikr',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â§Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã¢â‚¬Å“ ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°',
-                          ),
-                        ),
+                        _SectionTitle(title: t('Dua & Zikr', 'দোয়া ও জিকর')),
                         _FeatureCard(
-                          title: t(
-                            'Dua 1',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â§Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â§Ã‚Â§',
-                          ),
-                          subtitle: t(
-                            'Before Sleeping',
-                            'ÃƒÂ Ã‚Â¦Ã‹Å“ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã¢â‚¬â€ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡',
-                          ),
+                          title: t('Dua 1', 'দোয়া ১'),
+                          subtitle: t('Before Sleeping', 'ঘুমানোর আগে'),
                           detail: 'Allahumma bismika amutu wa ahya',
                           icon: Icons.volunteer_activism_rounded,
                           onTap: () => openRoute(RouteNames.dua),
                         ),
                         const SizedBox(height: 12),
-                        _SectionTitle(
-                          title: t(
-                            'Explore More',
-                            'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã¢â‚¬Å“ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
-                          ),
-                        ),
+                        _SectionTitle(title: t('Explore More', 'আরও দেখুন')),
                         GridView.count(
                           crossAxisCount: 3,
                           childAspectRatio: 1.1,
@@ -239,50 +205,36 @@ class DiscoverScreen extends StatelessWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           children: [
                             _QuickTile(
-                              title: t(
-                                'Prophet Stories',
-                                'Ã Â¦Â¨Ã Â¦Â¬Ã Â§â‚¬-Ã Â¦Â°Ã Â¦Â¾Ã Â¦Â¸Ã Â§ÂÃ Â¦Â² Ã Â¦â€¢Ã Â¦Â¾Ã Â¦Â¹Ã Â¦Â¿Ã Â¦Â¨Ã Â§â‚¬',
-                              ),
+                              title: t('Prophet Stories', 'নবী-রাসুল কাহিনী'),
                               icon: Icons.account_balance_rounded,
                               onTap: () => openRoute(RouteNames.hadith),
                             ),
                             _QuickTile(
                               title: t(
                                 'Islamic Calendar',
-                                'Ã Â¦â€¡Ã Â¦Â¸Ã Â¦Â²Ã Â¦Â¾Ã Â¦Â®Ã Â¦Â¿Ã Â¦â€¢ Ã Â¦â€¢Ã Â§ÂÃ Â¦Â¯Ã Â¦Â¾Ã Â¦Â²Ã Â§â€¡Ã Â¦Â¨Ã Â§ÂÃ Â¦Â¡Ã Â¦Â¾Ã Â¦Â°',
+                                'ইসলামিক ক্যালেন্ডার',
                               ),
                               icon: Icons.calendar_month_rounded,
-                              onTap: () => openRoute(RouteNames.prayerCompass),
+                              onTap: () =>
+                                  openRoute(RouteNames.islamicCalendar),
                             ),
                             _QuickTile(
-                              title: t(
-                                'Quran Quiz',
-                                'Ã Â¦â€¢Ã Â§ÂÃ Â¦Â°Ã Â¦â€ Ã Â¦Â¨ Ã Â¦â€¢Ã Â§ÂÃ Â¦â€¡Ã Â¦Å“',
-                              ),
+                              title: t('Quran Quiz', 'কুরআন কুইজ'),
                               icon: Icons.quiz_rounded,
                               onTap: () => openRoute(RouteNames.quran),
                             ),
                             _QuickTile(
-                              title: t(
-                                'Tasbih Counter',
-                                'Ã Â¦Â¤Ã Â¦Â¾Ã Â¦Â¸Ã Â¦Â¬Ã Â¦Â¿Ã Â¦Â¹ Ã Â¦â€¢Ã Â¦Â¾Ã Â¦â€°Ã Â¦Â¨Ã Â§ÂÃ Â¦Å¸Ã Â¦Â¾Ã Â¦Â°',
-                              ),
+                              title: t('Tasbih Counter', 'তাসবিহ কাউন্টার'),
                               icon: Icons.countertops_rounded,
                               onTap: () => openRoute(RouteNames.tasbih),
                             ),
                             _QuickTile(
-                              title: t(
-                                'Prayer Times',
-                                'Ã Â¦Â¨Ã Â¦Â¾Ã Â¦Â®Ã Â¦Â¾Ã Â¦Å“Ã Â§â€¡Ã Â¦Â° Ã Â¦â€œÃ Â§Å¸Ã Â¦Â¾Ã Â¦â€¢Ã Â§ÂÃ Â¦Â¤',
-                              ),
+                              title: t('Prayer Times', 'নামাজের ওয়াক্ত'),
                               icon: Icons.mosque_rounded,
-                              onTap: () => openRoute(RouteNames.prayerCompass),
+                              onTap: () => openRoute(RouteNames.prayerTimes),
                             ),
                             _QuickTile(
-                              title: t(
-                                'Islamic Tips',
-                                'Ã Â¦â€¡Ã Â¦Â¸Ã Â¦Â²Ã Â¦Â¾Ã Â¦Â®Ã Â¦Â¿Ã Â¦â€¢ Ã Â¦Å¸Ã Â¦Â¿Ã Â¦ÂªÃ Â¦Â¸',
-                              ),
+                              title: t('Islamic Tips', 'ইসলামিক টিপস'),
                               icon: Icons.lightbulb_rounded,
                               onTap: () => openRoute(RouteNames.about),
                             ),

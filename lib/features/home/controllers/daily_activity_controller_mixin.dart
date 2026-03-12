@@ -21,8 +21,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   DateTime? _nextSehriAt;
   DateTime? _nextIftarAt;
   bool _isRefreshingLocation = false;
-  String _locationLabel = 'Detecting location...';
-  String _countdownLabel = 'Calculating prayer...';
+  String _locationLabel = _baitulMukarramLabel;
+  String _countdownLabel = 'Fajr in --:--:--';
   String _activePrayer = 'Zuhr';
   Duration _activeRemaining = Duration.zero;
   double _activeProgress = 0.0;
@@ -79,6 +79,12 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       viewportFraction: 0.23,
       initialPage: _prayerOrder.indexOf(_activePrayer),
     );
+    _setBaitulMukarramLocation();
+    _seedInitialPrayerPreview();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selectedPrayer != null) return;
+      _syncPrayerPageToActive(animate: false);
+    });
     appLanguageNotifier.addListener(_onLanguageChanged);
     useDeviceLocationNotifier.addListener(_onUseDeviceLocationChanged);
     profileLocationNotifier.addListener(_onProfileLocationChanged);
@@ -102,6 +108,49 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
         _recalculatePrayerTimesForToday();
       }
     });
+  }
+
+  void _seedInitialPrayerPreview() {
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+
+    final todaySchedule = _buildFallbackSchedule(today);
+    final tomorrowSchedule = _buildFallbackSchedule(tomorrow);
+
+    final activeData = _buildActivePrayerData(
+      now: _now,
+      fajr: todaySchedule.fajr,
+      dzuhr: todaySchedule.dzuhr,
+      ashr: todaySchedule.ashr,
+      maghrib: todaySchedule.maghrib,
+      isha: todaySchedule.isha,
+      ishaBefore: todaySchedule.isha.subtract(const Duration(days: 1)),
+    );
+
+    final mealData = _buildRamadanMealData(
+      now: _now,
+      sehri: todaySchedule.imsak,
+      maghrib: todaySchedule.maghrib,
+      tomorrowSehri: tomorrowSchedule.imsak,
+      tomorrowMaghrib: tomorrowSchedule.maghrib,
+    );
+
+    _todaySchedule = todaySchedule;
+    _tomorrowSchedule = tomorrowSchedule;
+    _lastPrayerCalcDate = today;
+    _prayerTimes = {
+      'Fajr': _formatPrayerTime(todaySchedule.fajr),
+      'Zuhr': _formatPrayerTime(todaySchedule.dzuhr),
+      'Asr': _formatPrayerTime(todaySchedule.ashr),
+      'Maghrib': _formatPrayerTime(todaySchedule.maghrib),
+      'Isha': _formatPrayerTime(todaySchedule.isha),
+    };
+    _activePrayer = activeData.name;
+    _countdownLabel = activeData.countdownLabel;
+    _activeRemaining = activeData.remaining;
+    _activeProgress = activeData.progress;
+    _nextSehriAt = mealData.nextSehri;
+    _nextIftarAt = mealData.nextIftar;
   }
 
   void disposeDailyActivityController() {
@@ -930,7 +979,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.high,
           ),
-        );
+        ).timeout(const Duration(seconds: 8));
       } catch (_) {
         final lastKnown = await Geolocator.getLastKnownPosition();
         if (lastKnown == null) rethrow;

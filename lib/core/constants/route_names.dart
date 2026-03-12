@@ -12,6 +12,8 @@ class RouteNames {
   static const dua = '/dua';
   static const tasbih = '/tasbih';
   static const quran = '/quran';
+  static const prayerTimes = '/prayer-times';
+  static const islamicCalendar = '/islamic-calendar';
   static const prayerCompass = '/prayer-compass';
   static const findMosque = '/find-mosque';
   static const privacyPolicy = '/privacy-policy';

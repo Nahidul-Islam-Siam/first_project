@@ -25,7 +25,7 @@ Widget bottomNav(BuildContext context, int active) {
     (
       label: 'Prayer',
       icon: Icons.calendar_month_outlined,
-      routeName: RouteNames.prayerCompass,
+      routeName: RouteNames.prayerTimes,
     ),
     (
       label: 'Profile',

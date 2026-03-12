@@ -53,7 +53,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
   String _text(String english, String bangla) => _isBangla ? bangla : english;
 
   String _fallbackLocationLabel() =>
-      _text('Baitul Mukarram, Dhaka', 'বায়তুল মুকাররম, ঢাকা');
+      _text('Baitul Mukarram, Dhaka', 'বায়তুল মুকাররম, ঢাকা');
 
   @override
   void initState() {
@@ -118,7 +118,7 @@ class _QiblaCompassScreenState extends State<QiblaCompassScreen> {
         _safeSetState(() {
           _sensorError = _text(
             'Could not read compass sensor.',
-            'কম্পাস সেন্সর থেকে ডাটা পাওয়া যায়নি।',
+            'কম্পাস সেন্সর থেকে ডাটা পাওয়া যায়নি।',
           );
           _isListening = false;
         });

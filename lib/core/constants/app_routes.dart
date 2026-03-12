@@ -15,6 +15,8 @@ import 'package:first_project/features/profile/screens/profile_preferences_scree
 import 'package:first_project/features/legal/screens/privacy_policy_screen.dart';
 import 'package:first_project/features/quran/screens/quran_screen.dart';
 import 'package:first_project/features/qibla/screens/qibla_compass_screen.dart';
+import 'package:first_project/features/prayer_time/screens/prayer_times_screen.dart';
+import 'package:first_project/features/islamic_calendar/screens/islamic_calendar_screen.dart';
 import 'package:first_project/features/splash/screens/ramadan_splash_screen.dart';
 import 'package:first_project/features/auth/screens/signin_screen.dart';
 import 'package:first_project/features/auth/screens/signup_screen.dart';
@@ -48,6 +50,10 @@ class AppRoutes {
         return _page(const TasbihScreen(), settings);
       case RouteNames.quran:
         return _page(const QuranScreen(), settings);
+      case RouteNames.prayerTimes:
+        return _page(const PrayerTimesScreen(), settings);
+      case RouteNames.islamicCalendar:
+        return _page(const IslamicCalendarScreen(), settings);
       case RouteNames.prayerCompass:
         return _page(const QiblaCompassScreen(), settings);
       case RouteNames.findMosque:

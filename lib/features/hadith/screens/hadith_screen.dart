@@ -350,7 +350,7 @@ class _HadithScreenState extends State<HadithScreen> {
                                       : Colors.white,
                                 ),
                                 onPressed: _loadHadiths,
-                                child: Text(_text('Retry', 'পুনরায় চেষ্টা')),
+                                child: Text(_text('Retry', 'পুনরায় চেষ্টা')),
                               ),
                             ],
                           ),

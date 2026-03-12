@@ -1360,7 +1360,7 @@ mixin DailyActivityViewMixin
         en: 'Prayer',
         bn: 'Prayer',
         icon: Icons.calendar_month_outlined,
-        route: RouteNames.prayerCompass,
+        route: RouteNames.prayerTimes,
       ),
       (
         en: 'Profile',
